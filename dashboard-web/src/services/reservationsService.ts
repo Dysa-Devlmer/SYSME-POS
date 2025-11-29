@@ -3,7 +3,7 @@
  * Handles all API calls related to table reservations
  */
 
-import api from './api';
+import { api } from '../api/client';
 
 // ============================================
 // INTERFACES

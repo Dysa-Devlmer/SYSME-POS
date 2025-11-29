@@ -12,7 +12,7 @@ import reservationsService, {
   CreateReservationData,
   reservationUtils
 } from '../services/reservationsService';
-import tablesService from '../services/tablesService';
+import tablesService from '../api/tablesService';
 
 interface Table {
   id: number;
