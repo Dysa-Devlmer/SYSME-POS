@@ -1,0 +1,383 @@
+{
+  "info": {
+    "name": "SYSME POS API v2.1",
+    "description": "Complete API collection for SYSME POS Enterprise Restaurant Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "sysme-pos-v2.1",
+    "version": "2.1.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('auth_token', jsonData.data.token);",
+                  "    pm.environment.set('auth_token', jsonData.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with username and password to get JWT token"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Get currently authenticated user information"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?category_id=&search=&is_active=true",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                {"key": "category_id", "value": ""},
+                {"key": "search", "value": ""},
+                {"key": "is_active", "value": "true"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pizza Margherita\",\n  \"sku\": \"PIZZA-001\",\n  \"description\": \"Pizza clásica italiana\",\n  \"category_id\": 1,\n  \"price\": 150.00,\n  \"cost\": 60.00,\n  \"unit_of_measure\": \"unit\",\n  \"is_active\": true\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pizza Margherita Grande\",\n  \"price\": 180.00\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Get Inventory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/inventory?location_id=&low_stock=false",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", "inventory"],
+              "query": [
+                {"key": "location_id", "value": ""},
+                {"key": "low_stock", "value": "false"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Transfer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from_location_id\": 1,\n  \"to_location_id\": 2,\n  \"product_id\": 1,\n  \"quantity\": 10,\n  \"notes\": \"Restock almacén 2\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/inventory/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", "transfers"]
+            }
+          }
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_id\": 1,\n  \"location_id\": 1,\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 100,\n      \"unit_price\": 50.00\n    }\n  ],\n  \"notes\": \"Orden mensual\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/inventory/purchase-orders",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", "purchase-orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/customers?search=&limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["customers"],
+              "query": [
+                {"key": "search", "value": ""},
+                {"key": "limit", "value": "50"},
+                {"key": "offset", "value": "0"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Juan\",\n  \"last_name\": \"Pérez\",\n  \"email\": \"juan@example.com\",\n  \"phone\": \"5551234567\",\n  \"address\": {\n    \"address_line1\": \"Calle Principal 123\",\n    \"city\": \"Ciudad de México\",\n    \"state\": \"CDMX\",\n    \"postal_code\": \"12345\"\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/customers",
+              "host": ["{{base_url}}"],
+              "path": ["customers"]
+            }
+          }
+        },
+        {
+          "name": "Add Loyalty Points",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": 50,\n  \"reason\": \"Compra\",\n  \"notes\": \"Orden #12345\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/customers/1/loyalty/add-points",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "1", "loyalty", "add-points"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/dashboard?location_id=&date=",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "dashboard"],
+              "query": [
+                {"key": "location_id", "value": ""},
+                {"key": "date", "value": ""}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Sales Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/sales-summary?start_date=2025-11-01&end_date=2025-11-20&group_by=day",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "sales-summary"],
+              "query": [
+                {"key": "start_date", "value": "2025-11-01"},
+                {"key": "end_date", "value": "2025-11-20"},
+                {"key": "group_by", "value": "day"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/products?start_date=2025-11-01&end_date=2025-11-20&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "products"],
+              "query": [
+                {"key": "start_date", "value": "2025-11-01"},
+                {"key": "end_date", "value": "2025-11-20"},
+                {"key": "limit", "value": "20"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reservations",
+      "item": [
+        {
+          "name": "Get Reservations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reservations?date=&status=",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"],
+              "query": [
+                {"key": "date", "value": ""},
+                {"key": "status", "value": ""}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Reservation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location_id\": 1,\n  \"reservation_datetime\": \"2025-11-21 19:00:00\",\n  \"party_size\": 4,\n  \"customer_name\": \"Juan Pérez\",\n  \"customer_phone\": \"5551234567\",\n  \"special_requests\": \"Mesa junto a ventana\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

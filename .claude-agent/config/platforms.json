@@ -1,0 +1,202 @@
+{
+  "platforms": {
+    "local_server": {
+      "enabled": true,
+      "priority": 1,
+      "tests": [
+        {
+          "name": "Health Check",
+          "type": "api",
+          "endpoint": "http://localhost:${LOCAL_PORT}/health",
+          "method": "GET",
+          "timeout": 5000,
+          "expected_status": 200,
+          "validation": {
+            "type": "json",
+            "fields": ["status", "timestamp", "environment"]
+          }
+        },
+        {
+          "name": "Auth Endpoint",
+          "type": "api",
+          "endpoint": "http://localhost:${LOCAL_PORT}/api/v1/auth/login",
+          "method": "POST",
+          "timeout": 5000,
+          "expected_status": [200, 400],
+          "validation": {
+            "type": "json",
+            "fields": ["success"]
+          }
+        },
+        {
+          "name": "Cash System - Current Session",
+          "type": "api",
+          "endpoint": "http://localhost:${LOCAL_PORT}/api/v1/cash/current",
+          "method": "GET",
+          "timeout": 5000,
+          "expected_status": [200, 401],
+          "validation": {
+            "type": "json",
+            "fields": ["success"]
+          }
+        },
+        {
+          "name": "Products Endpoint",
+          "type": "api",
+          "endpoint": "http://localhost:${LOCAL_PORT}/api/v1/products",
+          "method": "GET",
+          "timeout": 5000,
+          "expected_status": [200, 401],
+          "validation": {
+            "type": "json",
+            "fields": ["success"]
+          }
+        },
+        {
+          "name": "Tables Endpoint",
+          "type": "api",
+          "endpoint": "http://localhost:${LOCAL_PORT}/api/v1/tables",
+          "method": "GET",
+          "timeout": 5000,
+          "expected_status": [200, 401],
+          "validation": {
+            "type": "json",
+            "fields": ["success"]
+          }
+        }
+      ],
+      "config": {
+        "env_vars": ["LOCAL_PORT"],
+        "default_values": {
+          "LOCAL_PORT": "47851"
+        },
+        "default_timeout": 5000,
+        "retry_attempts": 2
+      }
+    },
+    "sqlite": {
+      "enabled": true,
+      "priority": 2,
+      "tests": [
+        {
+          "name": "Database File Exists",
+          "type": "file",
+          "path": "./backend/data/sysme_production.db",
+          "timeout": 1000,
+          "validation": {
+            "type": "exists"
+          }
+        },
+        {
+          "name": "Database Accessible",
+          "type": "database",
+          "query": "SELECT 1 as test",
+          "timeout": 5000,
+          "validation": {
+            "type": "result",
+            "expected": [{"test": 1}]
+          }
+        },
+        {
+          "name": "Users Table Exists",
+          "type": "database",
+          "query": "SELECT name FROM sqlite_master WHERE type='table' AND name='users'",
+          "timeout": 5000,
+          "validation": {
+            "type": "count",
+            "min_rows": 1
+          }
+        },
+        {
+          "name": "Cash Sessions Table Exists",
+          "type": "database",
+          "query": "SELECT name FROM sqlite_master WHERE type='table' AND name='cash_sessions'",
+          "timeout": 5000,
+          "validation": {
+            "type": "count",
+            "min_rows": 1
+          }
+        }
+      ],
+      "config": {
+        "connection": {
+          "database": "./backend/data/sysme_production.db"
+        },
+        "default_timeout": 5000,
+        "retry_attempts": 3
+      }
+    }
+  },
+  "global_config": {
+    "test_modes": {
+      "quick": {
+        "description": "Verificación rápida básica",
+        "timeout": 30000,
+        "platforms": ["local_server"],
+        "max_parallel": 2
+      },
+      "full": {
+        "description": "Suite completa de tests",
+        "timeout": 120000,
+        "platforms": ["local_server", "sqlite"],
+        "max_parallel": 3
+      },
+      "database": {
+        "description": "Tests específicos de base de datos",
+        "timeout": 60000,
+        "platforms": ["sqlite"],
+        "max_parallel": 2
+      },
+      "api": {
+        "description": "Tests de APIs y servicios",
+        "timeout": 60000,
+        "platforms": ["local_server"],
+        "max_parallel": 3
+      },
+      "equivalencia": {
+        "description": "Comparar con sistema SYSME antiguo",
+        "timeout": 120000,
+        "platforms": ["local_server"],
+        "max_parallel": 1,
+        "context_aware": true
+      }
+    },
+    "thresholds": {
+      "excellent": 95,
+      "good": 85,
+      "warning": 70,
+      "critical": 50
+    },
+    "reporting": {
+      "formats": ["console", "json", "markdown"],
+      "save_reports": true,
+      "report_history": 30,
+      "auto_summary": true
+    },
+    "notifications": {
+      "console_colors": true,
+      "progress_indicators": true,
+      "summary_table": true,
+      "failure_details": true
+    }
+  },
+  "projects": {
+    "sysme_2_0": {
+      "name": "SYSME 2.0",
+      "description": "Sistema de Punto de Venta Modernizado",
+      "root_path": "E:\\POS SYSME\\SYSME",
+      "platforms": ["local_server", "sqlite"],
+      "custom_config": {
+        "LOCAL_PORT": "47851",
+        "DB_PATH": "./backend/data/sysme_production.db"
+      },
+      "comparison_system": {
+        "name": "SYSME Antiguo",
+        "path": "E:\\POS SYSME\\Sysme_Principal\\SYSME",
+        "enabled": true
+      }
+    }
+  },
+  "version": "1.0.0",
+  "last_updated": "2025-10-26T00:00:00Z"
+}

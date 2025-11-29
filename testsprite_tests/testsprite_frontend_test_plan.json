@@ -1,0 +1,808 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Registration with Valid Data",
+    "description": "Verify that a new user can be registered successfully with valid data including username, email, password, and role assignment.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/register with valid user data (username, email, password, role)."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 201 Created and response contains user ID and role information."
+      },
+      {
+        "type": "assertion",
+        "description": "User data is persisted in the database with correct role."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Registration with Missing Mandatory Fields",
+    "description": "Verify registration fails when mandatory fields like username or password are missing.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/register without username."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 400 Bad Request with validation error message."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/register without password."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 400 Bad Request with validation error message."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Login Success",
+    "description": "Verify that a registered user can log in successfully with correct credentials and receives a valid JWT token.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/login with valid username and password."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 200 OK and response contains a JWT token."
+      },
+      {
+        "type": "action",
+        "description": "Decode JWT token to verify user role and expiration claims."
+      },
+      {
+        "type": "assertion",
+        "description": "JWT token contains correct user role and valid expiry."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "User Login Failure with Incorrect Password",
+    "description": "Verify login fails and returns appropriate error on incorrect password.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/login with valid username but wrong password."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 401 Unauthorized with error message indicating invalid credentials."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Enable Two-Factor Authentication (2FA) Successfully",
+    "description": "Verify that a logged-in user can enable 2FA and receives a valid secret or QR code for setup.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Authenticate user and send POST request to /api/v1/auth/enable-2fa."
+      },
+      {
+        "type": "assertion",
+        "description": "Response includes 2FA secret or QR code data."
+      },
+      {
+        "type": "action",
+        "description": "Verify that 2FA status is updated in user profile by requesting /api/v1/auth/me."
+      },
+      {
+        "type": "assertion",
+        "description": "2FA enabled flag is true in user profile."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Login with 2FA Enabled",
+    "description": "Verify that user with 2FA enabled must provide valid 2FA code after providing valid username and password to complete login.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/login with valid credentials of user with 2FA enabled."
+      },
+      {
+        "type": "assertion",
+        "description": "Initial login response indicates 2FA is required."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/verify-2fa with valid 2FA code."
+      },
+      {
+        "type": "assertion",
+        "description": "Response contains valid JWT token allowing access."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/verify-2fa with invalid 2FA code."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 401 Unauthorized with appropriate error message."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Password Reset Request and Reset Flow",
+    "description": "Verify that a user can request a password reset link and successfully reset their password using a valid token.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/forgot-password with registered email."
+      },
+      {
+        "type": "assertion",
+        "description": "Response is 200 OK and reset token is generated and sent."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/reset-password/{token} with new password."
+      },
+      {
+        "type": "assertion",
+        "description": "Password reset is successful and user can log in with new password."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/auth/reset-password/{invalid_token}."
+      },
+      {
+        "type": "assertion",
+        "description": "Response is 400 Bad Request or 401 Unauthorized indicating invalid or expired token."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Role-Based Access Control Enforcement",
+    "description": "Verify that API endpoints are accessible only to users with appropriate roles and unauthorized roles receive access denied errors.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt access to admin-only endpoint /api/v1/users with a manager role token."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 403 Forbidden."
+      },
+      {
+        "type": "action",
+        "description": "Attempt access to waiter-only endpoint like /api/v1/orders with an unauthenticated user."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 401 Unauthorized."
+      },
+      {
+        "type": "action",
+        "description": "Access allowed endpoints with correct role tokens."
+      },
+      {
+        "type": "assertion",
+        "description": "Response status is 200 OK."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Open and Close Cash Register Session",
+    "description": "Verify that authorized user can open a new cash register session, perform cash movements, and close the session successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/cash/open to start a session."
+      },
+      {
+        "type": "assertion",
+        "description": "Session is opened and active session details are returned."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/cash/movement to add cash inflow and outflow."
+      },
+      {
+        "type": "assertion",
+        "description": "Movements are recorded correctly and reflected in session totals."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/cash/close to close the session."
+      },
+      {
+        "type": "assertion",
+        "description": "Cash session is closed and no further movements allowed."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Create Product with Image Upload and Stock Alert",
+    "description": "Verify creating a product with all required fields, uploading images, and stock alerts are generated for low stock.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/products to create new product with valid fields."
+      },
+      {
+        "type": "assertion",
+        "description": "Product is created with a unique ID."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/products/:id/images to upload one or more product images."
+      },
+      {
+        "type": "assertion",
+        "description": "Images are successfully uploaded and linked to the product."
+      },
+      {
+        "type": "action",
+        "description": "Update product stock below low stock threshold using PATCH /api/v1/products/:id/stock."
+      },
+      {
+        "type": "assertion",
+        "description": "Product appears in low stock listing /api/v1/products/low-stock."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Bulk Update Multiple Products",
+    "description": "Verify that multiple products' prices and stocks can be updated in bulk and changes are correctly saved.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/products/bulk-update with list of product IDs and updates."
+      },
+      {
+        "type": "assertion",
+        "description": "All listed products are updated accordingly."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve updated products via GET /api/v1/products/:id to verify changes."
+      },
+      {
+        "type": "assertion",
+        "description": "Changes in price and stock are reflected accurately."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Import and Export Products CSV Format",
+    "description": "Verify that products can be exported to CSV and new products can be imported via CSV with validations.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/v1/products/export/csv to retrieve CSV data."
+      },
+      {
+        "type": "assertion",
+        "description": "CSV file contains accurate and complete product data."
+      },
+      {
+        "type": "action",
+        "description": "Modify CSV by adding new product entries, then send POST request to /api/v1/products/import/csv with CSV file."
+      },
+      {
+        "type": "assertion",
+        "description": "New products from CSV are created and returned with success status."
+      },
+      {
+        "type": "action",
+        "description": "Attempt importing malformed CSV and observe validation."
+      },
+      {
+        "type": "assertion",
+        "description": "Response indicates errors and no partial imports occur."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Table Management CRUD and Status Updates",
+    "description": "Verify creation, retrieval, updating, deleting of restaurant tables, including status changes with real-time reflection.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/tables to create a new table with valid data."
+      },
+      {
+        "type": "assertion",
+        "description": "Table is created and accessible via GET /api/v1/tables/:id."
+      },
+      {
+        "type": "action",
+        "description": "Update table details such as name or salon assignment with PUT /api/v1/tables/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Updated details are saved and retrievable."
+      },
+      {
+        "type": "action",
+        "description": "Change table status (free, occupied, reserved) via PATCH /api/v1/tables/:id/status."
+      },
+      {
+        "type": "assertion",
+        "description": "Status change is accepted and real-time events (Socket.IO) broadcast updated status."
+      },
+      {
+        "type": "action",
+        "description": "Delete the table via DELETE /api/v1/tables/:id and verify it is removed."
+      },
+      {
+        "type": "assertion",
+        "description": "GET /api/v1/tables/:id returns 404 Not Found after deletion."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Order Creation and Kitchen Status Workflow",
+    "description": "Verify orders can be created for tables and for delivery/takeaway, kitchen status updates flow correctly and real-time updates trigger.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/orders to create a new order assigned to a table with valid products."
+      },
+      {
+        "type": "assertion",
+        "description": "Order is created and visible via GET /api/v1/orders/:id and /api/v1/orders/table/:table_id."
+      },
+      {
+        "type": "action",
+        "description": "Update kitchen status of the order to preparing, ready, served via PATCH /api/v1/orders/:id/kitchen-status."
+      },
+      {
+        "type": "assertion",
+        "description": "Status updates reflect correctly and kitchen staff receive update via Socket.IO events."
+      },
+      {
+        "type": "action",
+        "description": "Create an order for delivery/takeaway and validate similar lifecycle."
+      },
+      {
+        "type": "assertion",
+        "description": "Order creation and status updates succeed as expected."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Kitchen Display System Real-Time Order Updates",
+    "description": "Verify kitchen display shows active orders, supports status updates, printing, and reports kitchen statistics correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Fetch active kitchen orders via GET /api/v1/kitchen/orders."
+      },
+      {
+        "type": "assertion",
+        "description": "Orders list is accurate and reflects current kitchen workload."
+      },
+      {
+        "type": "action",
+        "description": "Update kitchen order status via PATCH /api/v1/kitchen/orders/:id/status."
+      },
+      {
+        "type": "assertion",
+        "description": "Kitchen display receives real-time update via Socket.IO event kitchen:update."
+      },
+      {
+        "type": "action",
+        "description": "Mark order as printed via POST /api/v1/kitchen/orders/:id/print."
+      },
+      {
+        "type": "assertion",
+        "description": "Order printing status is reflected correctly."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve kitchen statistics from GET /api/v1/kitchen/stats."
+      },
+      {
+        "type": "assertion",
+        "description": "Statistics such as counts of pending, ready orders are accurate."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Sales Processing with Multiple Payment Methods",
+    "description": "Verify sales can be created and processed correctly with various payment methods and daily sales reports generated.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/sales/process with valid order and payment details (cash, card, etc)."
+      },
+      {
+        "type": "assertion",
+        "description": "Sale is recorded correctly and payment processed."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve single sale details with GET /api/v1/sales/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Sale details match the processed data."
+      },
+      {
+        "type": "action",
+        "description": "Generate daily sales report via GET /api/v1/sales/daily-report."
+      },
+      {
+        "type": "assertion",
+        "description": "Report summarizes sales totals and matches expected transactions."
+      },
+      {
+        "type": "action",
+        "description": "Delete or cancel a sale via DELETE /api/v1/sales/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Sale is removed or marked as cancelled correctly."
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Category Management CRUD Operations",
+    "description": "Verify that product categories and subcategories can be created, retrieved, updated, and deleted correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a new category via POST /api/v1/categories."
+      },
+      {
+        "type": "assertion",
+        "description": "Category is created with unique ID."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve all categories with GET /api/v1/categories."
+      },
+      {
+        "type": "assertion",
+        "description": "Response includes created category with subcategories structure."
+      },
+      {
+        "type": "action",
+        "description": "Update category name or details with PUT /api/v1/categories/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Category update is saved."
+      },
+      {
+        "type": "action",
+        "description": "Delete a category via DELETE /api/v1/categories/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Category is deleted and no longer retrievable."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Inventory Stock Entry, Exit and Alert Verification",
+    "description": "Verify stock entries and exits are recorded correctly and low stock alerts are generated.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/inventory/entry to add stock for product."
+      },
+      {
+        "type": "assertion",
+        "description": "Stock level increases accordingly."
+      },
+      {
+        "type": "action",
+        "description": "Send POST request to /api/v1/inventory/exit recording product usage or sale."
+      },
+      {
+        "type": "assertion",
+        "description": "Stock level decreases accordingly."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve low stock alerts from GET /api/v1/inventory/alerts."
+      },
+      {
+        "type": "assertion",
+        "description": "Products below threshold appear in alert list."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve movement history from GET /api/v1/inventory/movements."
+      },
+      {
+        "type": "assertion",
+        "description": "Movement records show accurate entry and exit events."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Generate and Export Reports in PDF and Excel",
+    "description": "Verify reports for sales, inventory, and financial data can be generated with date range filters and exported correctly as PDF and Excel files.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/v1/reports/sales with date range parameters."
+      },
+      {
+        "type": "assertion",
+        "description": "Report data is returned and matches expected sales values."
+      },
+      {
+        "type": "action",
+        "description": "Export report as PDF via GET /api/v1/reports/export/pdf."
+      },
+      {
+        "type": "assertion",
+        "description": "PDF file is downloadable with correct report content."
+      },
+      {
+        "type": "action",
+        "description": "Export report as Excel via GET /api/v1/reports/export/excel."
+      },
+      {
+        "type": "assertion",
+        "description": "Excel file is downloadable and contains accurate data."
+      },
+      {
+        "type": "action",
+        "description": "Repeat above for inventory and financial reports endpoints."
+      },
+      {
+        "type": "assertion",
+        "description": "Reports are accurate and complete."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "User Management CRUD with Role Assignment",
+    "description": "Verify creation, update, retrieval, and deletion of users with appropriate role assignment and restrictions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a new user with POST /api/v1/users including role."
+      },
+      {
+        "type": "assertion",
+        "description": "User is created and role is assigned correctly."
+      },
+      {
+        "type": "action",
+        "description": "Update user details and role with PUT /api/v1/users/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Updates persist and are retrievable."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve user details with GET /api/v1/users/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "Response contains correct user data and role."
+      },
+      {
+        "type": "action",
+        "description": "Delete user via DELETE /api/v1/users/:id."
+      },
+      {
+        "type": "assertion",
+        "description": "User is deleted and no longer accessible."
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "System Settings Retrieval and Update",
+    "description": "Verify retrieving system settings keys and updating configuration values persists changes and applies immediately.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Retrieve all settings via GET /api/v1/settings."
+      },
+      {
+        "type": "assertion",
+        "description": "Settings are returned with current values."
+      },
+      {
+        "type": "action",
+        "description": "Update a specific setting via PUT /api/v1/settings/:key with new value."
+      },
+      {
+        "type": "assertion",
+        "description": "Update response is successful and subsequent GET /api/v1/settings/:key returns updated value."
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "WebSocket Real-Time Synchronization of Table Status",
+    "description": "Verify that table status updates trigger correct WebSocket events and connected clients receive the events instantly.",
+    "category": "integration",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Establish WebSocket connection as a client subscribed to table updates."
+      },
+      {
+        "type": "action",
+        "description": "Change table status using PATCH /api/v1/tables/:id/status."
+      },
+      {
+        "type": "assertion",
+        "description": "WebSocket client receives 'table:update' event with updated table status payload."
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "WebSocket Real-Time Synchronization of Order Creation and Status Updates",
+    "description": "Verify WebSocket events 'order:new' and 'order:update' are emitted on order creation and status changes respectively.",
+    "category": "integration",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Subscribe to WebSocket events for order notifications."
+      },
+      {
+        "type": "action",
+        "description": "Create a new order with POST /api/v1/orders."
+      },
+      {
+        "type": "assertion",
+        "description": "WebSocket event 'order:new' is emitted with new order data."
+      },
+      {
+        "type": "action",
+        "description": "Update order status via PATCH /api/v1/orders/:id/kitchen-status."
+      },
+      {
+        "type": "assertion",
+        "description": "WebSocket event 'order:update' is received with updated status."
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Health Check and Monitoring Endpoints",
+    "description": "Verify that health check endpoints reflect accurate system status and metrics.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send request to health check or monitoring endpoint."
+      },
+      {
+        "type": "assertion",
+        "description": "Response contains up-to-date system health metrics and status."
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "User Session Management and Revocation",
+    "description": "Verify that active user sessions can be listed and specific sessions revoked successfully.",
+    "category": "security",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Authenticate and send GET request to /api/v1/auth/sessions to list sessions."
+      },
+      {
+        "type": "assertion",
+        "description": "Response includes all active sessions for user."
+      },
+      {
+        "type": "action",
+        "description": "Send DELETE request to /api/v1/auth/sessions/:sessionId to revoke a session."
+      },
+      {
+        "type": "assertion",
+        "description": "Session is revoked and subsequent requests using that session are unauthorized."
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Z Report Generation and Printing Workflow",
+    "description": "Verify that cash register Z reports are generated for sessions, listed, and can be marked as printed.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Generate Z report for a specific cash session via POST /api/v1/cash/z-report/:session_id."
+      },
+      {
+        "type": "assertion",
+        "description": "Z report is generated with correct totals."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve list of Z reports via GET /api/v1/cash/z-reports."
+      },
+      {
+        "type": "assertion",
+        "description": "Generated report appears in history."
+      },
+      {
+        "type": "action",
+        "description": "Mark a Z report as printed using PATCH /api/v1/cash/z-report/:id/printed."
+      },
+      {
+        "type": "assertion",
+        "description": "Report status updates to printed."
+      }
+    ]
+  }
+]

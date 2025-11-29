@@ -1,0 +1,644 @@
+openapi: 3.0.3
+info:
+  title: SYSME POS v2.1 API
+  description: |
+    API completa para SYSME POS v2.1 con servicios enterprise de:
+    - Notificaciones Email/SMS
+    - Performance Monitoring
+    - Configuración Dinámica
+    - Webhooks
+    - RBAC (Control de Acceso)
+    - Internacionalización (i18n)
+  version: 2.1.0
+  contact:
+    name: SYSME Support
+    email: support@sysme.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3000/api
+    description: Desarrollo Local
+  - url: https://api.sysme.com/api
+    description: Producción
+
+tags:
+  - name: Notifications
+    description: Servicios de notificaciones Email/SMS
+  - name: Performance
+    description: Monitoreo y optimización de rendimiento
+  - name: Configuration
+    description: Gestión de configuración dinámica
+  - name: Webhooks
+    description: Gestión de webhooks para integraciones
+  - name: RBAC
+    description: Control de acceso basado en roles
+  - name: i18n
+    description: Internacionalización y traducciones
+  - name: Health
+    description: Health checks y diagnósticos
+
+paths:
+  # ==========================================================================
+  # NOTIFICATIONS
+  # ==========================================================================
+  /services/notifications/email:
+    post:
+      tags: [Notifications]
+      summary: Enviar email
+      description: Envía un email usando plantillas o HTML directo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to, subject]
+              properties:
+                to:
+                  oneOf:
+                    - type: string
+                      format: email
+                    - type: array
+                      items:
+                        type: string
+                        format: email
+                  example: "user@example.com"
+                subject:
+                  type: string
+                  example: "Bienvenido a SYSME POS"
+                template:
+                  type: string
+                  example: "welcome-email"
+                data:
+                  type: object
+                  example: { "name": "Juan", "username": "jperez" }
+                html:
+                  type: string
+                text:
+                  type: string
+                priority:
+                  type: boolean
+      responses:
+        '200':
+          description: Email enviado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result:
+                    type: object
+                  message:
+                    type: string
+        '400':
+          description: Parámetros inválidos
+        '500':
+          description: Error del servidor
+
+  /services/notifications/sms:
+    post:
+      tags: [Notifications]
+      summary: Enviar SMS
+      description: Envía un SMS a uno o más números
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to, message]
+              properties:
+                to:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                  example: "+1234567890"
+                message:
+                  type: string
+                  example: "Tu código de verificación es: 123456"
+                priority:
+                  type: boolean
+      responses:
+        '200':
+          description: SMS enviado exitosamente
+        '400':
+          description: Parámetros inválidos
+        '500':
+          description: Error del servidor
+
+  /services/notifications/stats:
+    get:
+      tags: [Notifications]
+      summary: Obtener estadísticas de notificaciones
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas obtenidas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: object
+                    properties:
+                      sent:
+                        type: integer
+                      failed:
+                        type: integer
+                      queued:
+                        type: integer
+                  sms:
+                    type: object
+                    properties:
+                      sent:
+                        type: integer
+                      failed:
+                        type: integer
+                      queued:
+                        type: integer
+
+  # ==========================================================================
+  # PERFORMANCE
+  # ==========================================================================
+  /services/performance/report:
+    get:
+      tags: [Performance]
+      summary: Obtener reporte de rendimiento
+      description: Obtiene métricas completas de rendimiento del sistema
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reporte generado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  system:
+                    type: object
+                    properties:
+                      avgCPU:
+                        type: string
+                      avgMemory:
+                        type: string
+                      currentUptime:
+                        type: number
+                  requests:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      avgResponseTime:
+                        type: string
+                      slowRequests:
+                        type: integer
+
+  /services/performance/metrics:
+    get:
+      tags: [Performance]
+      summary: Obtener métricas actuales
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Métricas actuales
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cpu:
+                    type: object
+                  memory:
+                    type: object
+                  uptime:
+                    type: number
+
+  # ==========================================================================
+  # CONFIGURATION
+  # ==========================================================================
+  /services/config/{name}:
+    get:
+      tags: [Configuration]
+      summary: Obtener configuración
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "database"
+      responses:
+        '200':
+          description: Configuración obtenida
+        '404':
+          description: Configuración no encontrada
+
+    post:
+      tags: [Configuration]
+      summary: Actualizar configuración
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Configuración actualizada
+        '500':
+          description: Error actualizando
+
+  /services/config/{name}/versions:
+    get:
+      tags: [Configuration]
+      summary: Listar versiones de configuración
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de versiones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp:
+                      type: integer
+                    date:
+                      type: string
+                    file:
+                      type: string
+
+  # ==========================================================================
+  # WEBHOOKS
+  # ==========================================================================
+  /services/webhooks:
+    get:
+      tags: [Webhooks]
+      summary: Listar webhooks
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    url:
+                      type: string
+                    events:
+                      type: array
+                      items:
+                        type: string
+                    enabled:
+                      type: boolean
+
+    post:
+      tags: [Webhooks]
+      summary: Registrar webhook
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url, events]
+              properties:
+                name:
+                  type: string
+                  example: "zapier-integration"
+                url:
+                  type: string
+                  format: uri
+                  example: "https://hooks.zapier.com/xxx"
+                events:
+                  type: array
+                  items:
+                    type: string
+                  example: ["order.created", "payment.received"]
+                headers:
+                  type: object
+                enabled:
+                  type: boolean
+                secret:
+                  type: string
+      responses:
+        '201':
+          description: Webhook registrado
+        '500':
+          description: Error registrando webhook
+
+  /services/webhooks/{name}:
+    put:
+      tags: [Webhooks]
+      summary: Actualizar webhook
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook actualizado
+        '500':
+          description: Error actualizando
+
+    delete:
+      tags: [Webhooks]
+      summary: Eliminar webhook
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Webhook eliminado
+        '500':
+          description: Error eliminando
+
+  # ==========================================================================
+  # RBAC
+  # ==========================================================================
+  /services/rbac/roles:
+    get:
+      tags: [RBAC]
+      summary: Listar roles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    permissionCount:
+                      type: integer
+
+  /services/rbac/permissions:
+    get:
+      tags: [RBAC]
+      summary: Listar permisos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de permisos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    resource:
+                      type: string
+                    action:
+                      type: string
+                    description:
+                      type: string
+
+  /services/rbac/users/{userId}/roles:
+    post:
+      tags: [RBAC]
+      summary: Asignar rol a usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleId]
+              properties:
+                roleId:
+                  type: string
+                  example: "manager"
+      responses:
+        '200':
+          description: Rol asignado
+        '500':
+          description: Error asignando rol
+
+  /services/rbac/check:
+    post:
+      tags: [RBAC]
+      summary: Verificar permiso
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, resource, action]
+              properties:
+                userId:
+                  type: integer
+                resource:
+                  type: string
+                  example: "products"
+                action:
+                  type: string
+                  example: "create"
+      responses:
+        '200':
+          description: Resultado de verificación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasPermission:
+                    type: boolean
+                  userId:
+                    type: integer
+                  resource:
+                    type: string
+                  action:
+                    type: string
+
+  # ==========================================================================
+  # i18n
+  # ==========================================================================
+  /services/i18n/locales:
+    get:
+      tags: [i18n]
+      summary: Listar idiomas soportados
+      responses:
+        '200':
+          description: Lista de idiomas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code:
+                      type: string
+                    name:
+                      type: string
+                    loaded:
+                      type: boolean
+
+  /services/i18n/translate:
+    get:
+      tags: [i18n]
+      summary: Traducir clave
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "common.save"
+        - name: locale
+          in: query
+          schema:
+            type: string
+          example: "es"
+        - name: params
+          in: query
+          schema:
+            type: string
+          example: '{"name":"Juan"}'
+      responses:
+        '200':
+          description: Traducción obtenida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  locale:
+                    type: string
+                  translation:
+                    type: string
+
+  # ==========================================================================
+  # HEALTH
+  # ==========================================================================
+  /services/health:
+    get:
+      tags: [Health]
+      summary: Health check de todos los servicios
+      responses:
+        '200':
+          description: Estado del sistema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                  timestamp:
+                    type: string
+                  services:
+                    type: object
+                  stats:
+                    type: object
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+
+security:
+  - bearerAuth: []

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSME 2.0 - Sistema de Gestión Empresarial</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="background-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SYSME POS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#667eea">
+    <meta name="application-name" content="SYSME">
+
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#667eea">
+
+    <!-- Windows specific -->
+    <meta name="msapplication-config" content="/browserconfig.xml">
+
+    <!-- Description for SEO and app stores -->
+    <meta name="description" content="Sistema POS completo para restaurantes - Gestión de mesas, cocina, inventario y ventas en tiempo real">
+    <meta name="keywords" content="POS, restaurante, sistema, ventas, mesas, cocina, inventario">
+    <meta name="author" content="SYSME Team">
+
+    <!-- Loading styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        #root {
+            min-height: 100vh;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .loading-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .loading-version {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">🚀</div>
+            <h1 class="loading-title">SYSME 2.0</h1>
+            <p class="loading-subtitle">Sistema de Gestión Empresarial</p>
+            <div class="loading-spinner"></div>
+            <p class="loading-version">Entorno: Producción | v2.0.0</p>
+        </div>
+    </div>
+
+    <!-- React App Root -->
+    <div id="root"></div>
+
+    <!-- React Application Entry Point -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Hide loading screen when React loads -->
+    <script>
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.classList.add('fade-out');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 300);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

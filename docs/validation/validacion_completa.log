@@ -1,0 +1,75 @@
+(node:33508) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///E:/POS%20SYSME/SYSME/.claude-agent/validation-agent.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to E:\POS SYSME\SYSME\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+🚀 INICIANDO VALIDACIÓN DE SISTEMA SYSME 2.0
+
+ℹ 
+🗄️  VALIDANDO BASE DE DATOS...
+ℹ Tablas encontradas: 10
+  - categories
+  - products
+  - sale_items
+  - sales
+  - salons
+  - settings
+  - sqlite_sequence
+  - tables
+  - tarifas
+  - users
+✓ Usuarios en BD: 3
+✓ Productos en BD: 5
+✓ Mesas en BD: 5
+✓ Columnas de seguridad en users
+ℹ 
+🖥️  VALIDANDO BACKEND...
+✓ Health check: OK
+✓ Login con credenciales
+✓ API Productos
+✓ API Mesas
+✓ API Usuario actual
+ℹ 
+🌐 VALIDANDO FRONTEND...
+✓ Frontend accesible en http://127.0.0.1:23847
+✓ Estructura React detectada
+ℹ 
+🔗 VALIDANDO INTEGRACIÓN...
+⚠ Sync Productos: BD(62) === API(20)
+
+
+📊 REPORTE DE VALIDACIÓN
+
+============================================================
+
+1. BASE DE DATOS:
+  ✓ Usuarios en BD
+  ✓ Productos en BD
+  ✓ Mesas en BD
+  ✓ Columnas de seguridad
+
+2. BACKEND:
+  ✓ Health Check
+  ✓ Autenticación
+  ✓ API Productos
+  ✓ API Mesas
+  ✓ API Usuario
+
+3. FRONTEND:
+  ✓ Frontend disponible
+  ✓ Estructura React
+
+4. INTEGRACIÓN:
+  ✗ Sincronización BD-Backend
+    BD: 62, API: 20
+
+============================================================
+
+RESUMEN:
+  ✓ Pruebas exitosas: 11
+  ✗ Pruebas fallidas: 1
+
+  COBERTURA: 91.7%
+
+⚠️  SISTEMA PARCIALMENTE FUNCIONAL - HAY PROBLEMAS
+

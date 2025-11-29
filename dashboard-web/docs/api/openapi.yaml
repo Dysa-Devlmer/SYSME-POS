@@ -1,0 +1,774 @@
+openapi: 3.0.3
+info:
+  title: SYSME POS API
+  description: |
+    Enterprise Restaurant Point of Sale & Management System API
+
+    ## Features
+    - 🔐 JWT Authentication
+    - 🛡️ Role-Based Access Control (RBAC)
+    - 📊 Real-time Analytics
+    - 💳 Multi-payment Processing
+    - 📦 Inventory Management
+    - 👥 Customer CRM & Loyalty
+    - 🍽️ Kitchen Operations
+    - 📅 Reservations & Table Management
+
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer YOUR_JWT_TOKEN
+    ```
+
+    ## Rate Limiting
+    - 100 requests per minute per IP address
+    - Rate limit headers included in responses
+
+    ## Pagination
+    List endpoints support pagination with `limit` and `offset` query parameters:
+    - Default limit: 50
+    - Maximum limit: 100
+
+  version: 2.1.0
+  contact:
+    name: SYSME POS Support
+    url: https://github.com/your-repo/sysme-pos
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+  - url: https://api.yourdomain.com/api
+    description: Production
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Products
+    description: Product catalog management
+  - name: Sales
+    description: Point of sale and order operations
+  - name: Inventory
+    description: Stock and inventory management
+  - name: Customers
+    description: Customer CRM and loyalty program
+  - name: Analytics
+    description: Business intelligence and reporting
+  - name: Reservations
+    description: Table reservations and waitlist
+  - name: Promotions
+    description: Discounts, coupons, and gift cards
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid input data"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+    Product:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Pizza Margherita"
+        sku:
+          type: string
+          example: "PIZZA-001"
+        description:
+          type: string
+          example: "Classic Italian pizza with tomato and mozzarella"
+        category_id:
+          type: integer
+          example: 1
+        price:
+          type: number
+          format: decimal
+          example: 150.00
+        cost:
+          type: number
+          format: decimal
+          example: 60.00
+        unit_of_measure:
+          type: string
+          example: "unit"
+        is_active:
+          type: boolean
+          example: true
+        image_url:
+          type: string
+          example: "/uploads/pizza-margherita.jpg"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      properties:
+        order_id:
+          type: integer
+          example: 1
+        order_number:
+          type: string
+          example: "ORD-20251120-001"
+        customer_id:
+          type: integer
+          example: 1
+        table_id:
+          type: integer
+          example: 5
+        subtotal:
+          type: number
+          format: decimal
+          example: 500.00
+        tax_amount:
+          type: number
+          format: decimal
+          example: 80.00
+        discount_amount:
+          type: number
+          format: decimal
+          example: 50.00
+        total_amount:
+          type: number
+          format: decimal
+          example: 530.00
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, completed, cancelled]
+          example: "confirmed"
+        order_type:
+          type: string
+          enum: [dine-in, takeout, delivery]
+          example: "dine-in"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        created_at:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        order_item_id:
+          type: integer
+          example: 1
+        product_id:
+          type: integer
+          example: 1
+        product_name:
+          type: string
+          example: "Pizza Margherita"
+        quantity:
+          type: integer
+          example: 2
+        unit_price:
+          type: number
+          format: decimal
+          example: 150.00
+        subtotal:
+          type: number
+          format: decimal
+          example: 300.00
+        notes:
+          type: string
+          example: "Extra cheese"
+
+    Customer:
+      type: object
+      properties:
+        customer_id:
+          type: integer
+          example: 1
+        first_name:
+          type: string
+          example: "Juan"
+        last_name:
+          type: string
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan@example.com"
+        phone:
+          type: string
+          example: "5551234567"
+        loyalty_points:
+          type: integer
+          example: 250
+        loyalty_tier:
+          type: string
+          example: "Gold"
+        total_orders:
+          type: integer
+          example: 15
+        total_spent:
+          type: number
+          format: decimal
+          example: 3500.00
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "admin"
+                password:
+                  type: string
+                  example: "admin123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      refreshToken:
+                        type: string
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      user:
+                        type: object
+                        properties:
+                          user_id:
+                            type: integer
+                            example: 1
+                          username:
+                            type: string
+                            example: "admin"
+                          email:
+                            type: string
+                            example: "admin@example.com"
+                          role:
+                            type: string
+                            example: "admin"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get currently authenticated user information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      user_id:
+                        type: integer
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieve list of products with optional filtering
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by category ID
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or SKU
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Maximum number of results
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      total:
+                        type: integer
+
+    post:
+      tags:
+        - Products
+      summary: Create new product
+      description: Add a new product to the catalog
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - sku
+                - price
+                - cost
+              properties:
+                name:
+                  type: string
+                  example: "Pizza Margherita"
+                sku:
+                  type: string
+                  example: "PIZZA-001"
+                description:
+                  type: string
+                  example: "Classic Italian pizza"
+                category_id:
+                  type: integer
+                  example: 1
+                price:
+                  type: number
+                  format: decimal
+                  example: 150.00
+                cost:
+                  type: number
+                  format: decimal
+                  example: 60.00
+                unit_of_measure:
+                  type: string
+                  example: "unit"
+                is_active:
+                  type: boolean
+                  example: true
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Retrieve single product details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Product ID
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+
+    put:
+      tags:
+        - Products
+      summary: Update product
+      description: Update existing product information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                  format: decimal
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Product updated successfully
+        '404':
+          description: Product not found
+
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      description: Soft delete a product (sets is_active to false)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Product deleted successfully
+        '404':
+          description: Product not found
+
+  /sales/orders:
+    post:
+      tags:
+        - Sales
+      summary: Create new order
+      description: Create a new sales order
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                customer_id:
+                  type: integer
+                  example: 1
+                table_id:
+                  type: integer
+                  example: 5
+                order_type:
+                  type: string
+                  enum: [dine-in, takeout, delivery]
+                  example: "dine-in"
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - quantity
+                    properties:
+                      product_id:
+                        type: integer
+                        example: 1
+                      quantity:
+                        type: integer
+                        example: 2
+                      notes:
+                        type: string
+                        example: "Extra cheese"
+                discount_id:
+                  type: integer
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Order'
+
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: Get all customers
+      description: Retrieve list of customers with pagination
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name, email, or phone
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+
+    post:
+      tags:
+        - Customers
+      summary: Create new customer
+      description: Add a new customer to the CRM
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - last_name
+              properties:
+                first_name:
+                  type: string
+                  example: "Juan"
+                last_name:
+                  type: string
+                  example: "Pérez"
+                email:
+                  type: string
+                  format: email
+                  example: "juan@example.com"
+                phone:
+                  type: string
+                  example: "5551234567"
+                address:
+                  type: object
+                  properties:
+                    address_line1:
+                      type: string
+                    city:
+                      type: string
+                    state:
+                      type: string
+                    postal_code:
+                      type: string
+      responses:
+        '201':
+          description: Customer created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Customer'
+
+  /analytics/dashboard:
+    get:
+      tags:
+        - Analytics
+      summary: Get dashboard metrics
+      description: Retrieve real-time business metrics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Date for metrics (default: today)
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by location
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      today_sales:
+                        type: object
+                        properties:
+                          order_count:
+                            type: integer
+                            example: 45
+                          total_sales:
+                            type: number
+                            example: 12500.00
+                          avg_order_value:
+                            type: number
+                            example: 277.78
+                      top_products:
+                        type: array
+                        items:
+                          type: object
+                      low_stock_items:
+                        type: array
+                        items:
+                          type: object
+
+security:
+  - BearerAuth: []

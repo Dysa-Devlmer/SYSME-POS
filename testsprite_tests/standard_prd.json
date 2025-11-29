@@ -1,0 +1,836 @@
+{
+  "meta": {
+    "project": "SYSME 2.0",
+    "date": "2025-10-20",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "SYSME 2.0 is a modern, full-stack POS (Point of Sale) system designed specifically for the hospitality industry, enabling restaurants to efficiently manage tables, orders, kitchen operations, inventory, sales, and reporting with real-time synchronization, optimized for the Chilean market.",
+  "core_goals": [
+    "Provide a secure and robust authentication system with role-based access control for administrators, managers, and waiters.",
+    "Enable comprehensive POS functionalities for order creation, product selection, and payment processing.",
+    "Offer efficient real-time table and kitchen management with live status updates.",
+    "Support complete product and inventory management with stock control and CSV import/export capabilities.",
+    "Implement detailed reporting and analytics with export options in PDF and Excel formats.",
+    "Ensure the system is localized for Chilean currency, date formats, and language.",
+    "Maintain system stability and scalability with Docker containerization, centralized logging, and health monitoring.",
+    "Enable real-time synchronization between components using WebSocket technology for up-to-date operations."
+  ],
+  "key_features": [
+    "JWT-based secure authentication with registration, login, password reset, two-factor authentication, and session management.",
+    "Complete cash register system with opening, closing, session tracking, cash movements, and Z report generation.",
+    "Product management including CRUD, price history, image handling, stock alerts, and bulk updates.",
+    "Table management with salon layouts, status updates, and tariff assignments.",
+    "Order management for creating, tracking, and completing orders assigned to tables or for delivery/takeaway.",
+    "Kitchen display system providing real-time order tracking with status updates and printing options.",
+    "Sales processing with multiple payment methods and detailed daily reports.",
+    "Category management for organizing products into categories and subcategories.",
+    "Inventory control system for tracking stock entries, exits, low stock alerts, and movement history.",
+    "Comprehensive reporting system with customizable reports on sales, inventory, and finances, exportable to multiple formats.",
+    "User management with CRUD and role assignment.",
+    "Settings management including system configuration and printer settings.",
+    "Real-time updates across tables, orders, kitchen, sales, and cash through Socket.IO integration."
+  ],
+  "user_flow_summary": [
+    "User logs in with credentials and selects appropriate role (admin, manager, waiter).",
+    "If 2FA is enabled, user completes two-factor authentication.",
+    "User accesses POS dashboard to create and manage orders, selecting products and applying payments.",
+    "Waiters assign orders to tables, monitor table status and update orders.",
+    "Kitchen staff view active kitchen orders, update status (preparing, ready, served), and print tickets.",
+    "Managers handle product CRUD, inventory adjustments, and generate reports.",
+    "Admins manage users, system settings, and oversee overall system health and logs.",
+    "System automatically synchronizes data in real-time across frontend and backend via WebSocket events.",
+    "Cashier staff open/close cash sessions, add cash movements, record sales, and generate Z reports.",
+    "All users can perform logout, password reset workflows, and session management."
+  ],
+  "validation_criteria": [
+    "Authentication endpoints properly handle login, registration, password reset, and 2FA enabling/disabling with role enforcement.",
+    "POS operations (order creation, sale recording, and payment processing) complete successfully under various scenarios.",
+    "Real-time updates for tables, orders, kitchen statuses, and sales events propagate instantly to connected clients.",
+    "Product CRUD operations including image uploads, stock/price updates, and CSV import/export function without error.",
+    "Inventory entry, exit, and alert systems accurately reflect stock levels and history.",
+    "Cash register open/close sessions and movements maintain consistent state across transactions.",
+    "Reports generate correct data exports to PDF and Excel formats with accurate filters applied.",
+    "User role-based access control restricts unauthorized operations effectively.",
+    "System settings updates persist correctly and apply immediately where needed.",
+    "Health check endpoints and monitoring tools reflect accurate system states and metrics.",
+    "Backup and restore scripts function reliably for data safety.",
+    "End-to-end UI and API tests cover critical workflows to ensure system stability and performance."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "Node.js v18+",
+      "Express.js 4.18.2",
+      "SQLite3 5.1.6 (development)",
+      "MySQL2 3.15.3 (production)",
+      "Socket.IO 4.7.4",
+      "JWT (jsonwebtoken 9.0.2)",
+      "bcrypt 6.0.0 / bcryptjs 2.4.3",
+      "Redis 4.6.10",
+      "Knex 3.1.0 (query builder)",
+      "Winston 3.18.3 (logging)",
+      "Morgan 1.10.0 (HTTP logging)",
+      "Helmet 7.1.0 (security)",
+      "Joi 17.13.3 (validation)",
+      "Multer 2.0.2 (file upload)",
+      "Sharp 0.34.4 (image processing)",
+      "node-cron 4.2.1 (scheduling)",
+      "CORS, Compression, Rate Limiting"
+    ],
+    "features": [
+      {
+        "name": "Authentication System",
+        "description": "JWT-based authentication with role-based access control (admin, manager, waiter). Supports login, registration, password reset, 2FA, session management.",
+        "files": [
+          "backend/src/modules/auth/controller.js",
+          "backend/src/modules/auth/routes.js",
+          "backend/src/middleware/auth.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/login",
+              "description": "User login with username/password",
+              "auth": false
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/pos/login",
+              "description": "POS-specific login",
+              "auth": false
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/auth/pos/employees",
+              "description": "Get list of POS employees",
+              "auth": false
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/register",
+              "description": "Register new user",
+              "auth": false
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/logout",
+              "description": "User logout",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/auth/me",
+              "description": "Get current user profile",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/auth/profile",
+              "description": "Get user profile",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/auth/profile",
+              "description": "Update user profile",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/change-password",
+              "description": "Change user password",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/forgot-password",
+              "description": "Request password reset",
+              "auth": false
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/reset-password/:token",
+              "description": "Reset password with token",
+              "auth": false
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/refresh-token",
+              "description": "Refresh JWT token",
+              "auth": false
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/auth/sessions",
+              "description": "Get user active sessions",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/auth/sessions/:sessionId",
+              "description": "Revoke specific session",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/enable-2fa",
+              "description": "Enable two-factor authentication",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/verify-2fa",
+              "description": "Verify 2FA code",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/auth/disable-2fa",
+              "description": "Disable two-factor authentication",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Cash Register System",
+        "description": "Complete cash management system with session control, movements tracking, Z reports, and daily closures.",
+        "files": [
+          "backend/src/modules/cash/controller.js",
+          "backend/src/modules/cash/routes.js",
+          "backend/src/database/models/cash.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/cash/current",
+              "description": "Get current active cash session",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/cash/open",
+              "description": "Open new cash register session",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/cash/close",
+              "description": "Close current cash session",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/cash/movement",
+              "description": "Add cash movement (in/out)",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/cash/record-sale",
+              "description": "Record sale in cash session",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/cash/history",
+              "description": "Get cash sessions history",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/cash/z-report/:session_id",
+              "description": "Generate Z report for session",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/cash/z-reports",
+              "description": "Get Z reports history",
+              "auth": true
+            },
+            {
+              "method": "PATCH",
+              "path": "/api/v1/cash/z-report/:id/printed",
+              "description": "Mark Z report as printed",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Product Management",
+        "description": "Complete product CRUD with image management, stock control, price history, bulk operations, and CSV import/export.",
+        "files": [
+          "backend/src/modules/products/controller.js",
+          "backend/src/modules/products/routes.js",
+          "backend/src/database/models/products.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/products",
+              "description": "List all products with filtering and pagination",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/products/search",
+              "description": "Search products by query",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/products/low-stock",
+              "description": "Get products with low stock",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/products/categories",
+              "description": "Get products grouped by categories",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/products/:id",
+              "description": "Get single product details",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/products",
+              "description": "Create new product",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/products/:id",
+              "description": "Update existing product",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/products/:id",
+              "description": "Delete product",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/products/:id/images",
+              "description": "Upload product images",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/products/:id/images/:imageId",
+              "description": "Delete product image",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/products/:id/duplicate",
+              "description": "Duplicate product",
+              "auth": true
+            },
+            {
+              "method": "PATCH",
+              "path": "/api/v1/products/:id/stock",
+              "description": "Update product stock",
+              "auth": true
+            },
+            {
+              "method": "PATCH",
+              "path": "/api/v1/products/:id/price",
+              "description": "Update product price",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/products/:id/history",
+              "description": "Get product change history",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/products/bulk-update",
+              "description": "Bulk update multiple products",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/products/export/csv",
+              "description": "Export products to CSV",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/products/import/csv",
+              "description": "Import products from CSV",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Table Management",
+        "description": "Table and salon management with real-time status updates, layout configuration, and tariff assignment.",
+        "files": [
+          "backend/src/modules/tables/controller.js",
+          "backend/src/modules/tables/routes.js",
+          "backend/src/database/models/tables.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/tables/salons",
+              "description": "Get all salons/rooms",
+              "auth": false
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/tables/tarifas",
+              "description": "Get all pricing tiers/tariffs",
+              "auth": false
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/tables",
+              "description": "Get all tables with filtering",
+              "auth": false
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/tables/:id",
+              "description": "Get single table details",
+              "auth": false
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/tables/salon/:salon_id/layout",
+              "description": "Get salon layout with tables",
+              "auth": false
+            },
+            {
+              "method": "PATCH",
+              "path": "/api/v1/tables/:id/status",
+              "description": "Update table status (free/occupied/reserved)",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/tables",
+              "description": "Create new table",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/tables/:id",
+              "description": "Update table details",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/tables/:id",
+              "description": "Delete table",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Orders Management",
+        "description": "Restaurant order management with kitchen integration, table assignment, and order completion.",
+        "files": [
+          "backend/src/modules/orders/controller.js",
+          "backend/src/modules/orders/routes.js",
+          "backend/src/database/models/orders.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/api/v1/orders",
+              "description": "Create new order for table/takeaway/delivery",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/orders/kitchen",
+              "description": "Get active orders for kitchen display",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/orders/table/:table_id",
+              "description": "Get all orders for specific table",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/orders/:id",
+              "description": "Get specific order details",
+              "auth": true
+            },
+            {
+              "method": "PATCH",
+              "path": "/api/v1/orders/:id/kitchen-status",
+              "description": "Update kitchen status (pending/preparing/ready/served)",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/orders/:id/complete",
+              "description": "Complete order and close table",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Kitchen Display System",
+        "description": "Real-time kitchen display panel for order management, status updates, and kitchen statistics.",
+        "files": [
+          "backend/src/modules/kitchen/controller.js",
+          "backend/src/modules/kitchen/routes.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/kitchen/orders",
+              "description": "Get active kitchen orders with filtering by status",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/kitchen/orders/:id",
+              "description": "Get specific order details for kitchen",
+              "auth": true
+            },
+            {
+              "method": "PATCH",
+              "path": "/api/v1/kitchen/orders/:id/status",
+              "description": "Update kitchen order status",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/kitchen/orders/:id/print",
+              "description": "Mark order as printed",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/kitchen/stats",
+              "description": "Get kitchen statistics (pending, ready, etc)",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Sales System",
+        "description": "POS sales processing with multiple payment methods, daily reports, and sales history.",
+        "files": [
+          "backend/src/modules/sales/controller.js",
+          "backend/src/modules/sales/routes.js",
+          "backend/src/database/models/sales.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/sales",
+              "description": "Get all sales with pagination",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/sales/daily-report",
+              "description": "Get daily sales summary report",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/sales/by-date/:date",
+              "description": "Get sales for specific date",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/sales/:id",
+              "description": "Get single sale details",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/sales",
+              "description": "Create new sale",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/sales/process",
+              "description": "Main POS sale processing endpoint",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/sales/:id",
+              "description": "Update sale",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/sales/:id",
+              "description": "Delete/cancel sale",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Category Management",
+        "description": "Product category and subcategory management system.",
+        "files": [
+          "backend/src/modules/categories/controller.js",
+          "backend/src/modules/categories/routes.js",
+          "backend/src/database/models/categories.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/categories",
+              "description": "Get all categories with subcategories",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/categories/:id",
+              "description": "Get single category",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/categories",
+              "description": "Create new category",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/categories/:id",
+              "description": "Update category",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/categories/:id",
+              "description": "Delete category",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Inventory Control",
+        "description": "Stock management with entries, exits, alerts, and movements tracking.",
+        "files": [
+          "backend/src/modules/inventory/controller.js",
+          "backend/src/modules/inventory/routes.js",
+          "backend/src/database/models/inventory.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/inventory",
+              "description": "Get inventory levels",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/inventory/entry",
+              "description": "Record stock entry",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/inventory/exit",
+              "description": "Record stock exit",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/inventory/movements",
+              "description": "Get inventory movements history",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/inventory/alerts",
+              "description": "Get low stock alerts",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Reports System",
+        "description": "Comprehensive reporting system with sales, inventory, and financial reports in PDF and Excel.",
+        "files": [
+          "backend/src/modules/reports/controller.js",
+          "backend/src/modules/reports/routes.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/sales",
+              "description": "Generate sales report for date range",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/inventory",
+              "description": "Generate inventory report",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/financial",
+              "description": "Generate financial report",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/export/pdf",
+              "description": "Export report as PDF",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/export/excel",
+              "description": "Export report as Excel",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "User Management",
+        "description": "User CRUD operations with role assignment and permission management.",
+        "files": [
+          "backend/src/modules/users/controller.js",
+          "backend/src/modules/users/routes.js",
+          "backend/src/database/models/users.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/users",
+              "description": "Get all users",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/users/:id",
+              "description": "Get single user",
+              "auth": true
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/users",
+              "description": "Create new user",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/users/:id",
+              "description": "Update user",
+              "auth": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/api/v1/users/:id",
+              "description": "Delete user",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "Settings Management",
+        "description": "System configuration and settings management.",
+        "files": [
+          "backend/src/modules/settings/controller.js",
+          "backend/src/modules/settings/routes.js",
+          "backend/src/database/models/settings.js"
+        ],
+        "api_doc": {
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/api/v1/settings",
+              "description": "Get all system settings",
+              "auth": true
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/settings/:key",
+              "description": "Get specific setting",
+              "auth": true
+            },
+            {
+              "method": "PUT",
+              "path": "/api/v1/settings/:key",
+              "description": "Update setting value",
+              "auth": true
+            }
+          ]
+        }
+      },
+      {
+        "name": "WebSocket Real-time Updates",
+        "description": "Real-time synchronization via Socket.IO for tables, orders, kitchen, and sales.",
+        "files": [
+          "backend/src/websockets/socketHandler.js",
+          "backend/src/websockets/events.js"
+        ],
+        "api_doc": {
+          "events": [
+            {
+              "event": "table:update",
+              "description": "Table status changed"
+            },
+            {
+              "event": "order:new",
+              "description": "New order created"
+            },
+            {
+              "event": "order:update",
+              "description": "Order status updated"
+            },
+            {
+              "event": "kitchen:update",
+              "description": "Kitchen status changed"
+            },
+            {
+              "event": "sale:complete",
+              "description": "Sale completed"
+            },
+            {
+              "event": "cash:update",
+              "description": "Cash session updated"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
