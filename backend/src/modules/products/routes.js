@@ -211,11 +211,41 @@ router.get('/export/csv',
 router.post('/import/csv',
   requirePermission('products.import'),
   upload.single('csv_file'),
-  validateFileUpload({ 
-    required: true, 
-    allowedTypes: ['text/csv', 'application/vnd.ms-excel'] 
+  validateFileUpload({
+    required: true,
+    allowedTypes: ['text/csv', 'application/vnd.ms-excel']
   }),
   asyncHandler(productController.importProductsCSV)
+);
+
+// ============================================
+// FAVORITES ROUTES
+// ============================================
+import * as favoritesController from './favorites.js';
+
+// GET /products/favorites - Get all favorite products
+router.get('/favorites',
+  asyncHandler(favoritesController.getFavorites)
+);
+
+// POST /products/favorites - Add product to favorites
+router.post('/favorites',
+  asyncHandler(favoritesController.addFavorite)
+);
+
+// DELETE /products/favorites/:product_id - Remove from favorites
+router.delete('/favorites/:product_id',
+  asyncHandler(favoritesController.removeFavorite)
+);
+
+// POST /products/favorites/:product_id/toggle - Toggle favorite status
+router.post('/favorites/:product_id/toggle',
+  asyncHandler(favoritesController.toggleFavorite)
+);
+
+// PUT /products/favorites/reorder - Reorder favorites
+router.put('/favorites/reorder',
+  asyncHandler(favoritesController.reorderFavorites)
 );
 
 export default router;
