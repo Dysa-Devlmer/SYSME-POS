@@ -5,6 +5,7 @@
 
 import Joi from 'joi';
 import { ValidationError } from './errorHandler.js';
+import { validationResult } from 'express-validator';
 
 // Common validation schemas
 export const commonSchemas = {
@@ -284,6 +285,22 @@ export const validateFileUpload = (options = {}) => {
   };
 };
 
+/**
+ * Validate request using express-validator
+ * For use with express-validator's check/query/body functions
+ */
+export const validateRequest = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      errors: errors.array()
+    });
+  }
+  next();
+};
+
 export default {
   commonSchemas,
   userSchemas,
@@ -294,5 +311,6 @@ export default {
   validate,
   validateQuery,
   validateParams,
-  validateFileUpload
+  validateFileUpload,
+  validateRequest
 };

@@ -3,15 +3,14 @@
  * Define todos los endpoints de métricas y KPIs
  */
 
-const express = require('express');
-const router = express.Router();
-const analyticsController = require('./controller');
-const authMiddleware = require('../../middleware/auth');
-const { validateRequest } = require('../../middleware/validation');
-const { query, body } = require('express-validator');
+import { Router } from 'express';
+import analyticsController from './controller.js';
+import { validateRequest } from '../../middleware/validation.js';
+import { query, body } from 'express-validator';
 
-// Middleware de autenticación para todas las rutas
-router.use(authMiddleware);
+const router = Router();
+
+// Autenticación se maneja en server.js
 
 /**
  * @route   GET /api/analytics/sales
@@ -483,4 +482,4 @@ router.post('/roi',
   }
 );
 
-module.exports = router;
+export default router;

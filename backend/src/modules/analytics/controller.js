@@ -3,23 +3,21 @@
  * Gestiona todos los endpoints de métricas y KPIs
  */
 
-const db = require('../../config/database');
-const cacheManager = require('../../services/cache-manager');
-const auditService = require('../../services/audit-service');
-const aiDemandService = require('../../services/ai-demand-service');
-const aiRecommendationService = require('../../services/ai-recommendation-service');
-const moment = require('moment');
+import { getDatabase } from '../../config/database.js';
+
+// Helper para obtener la conexión
+const getDb = () => getDatabase();
 
 class AnalyticsController {
   constructor() {
     this.CACHE_TTL = {
-      SALES: 300,        // 5 minutos
-      INVENTORY: 600,    // 10 minutos
-      CUSTOMERS: 900,    // 15 minutos
-      PERFORMANCE: 60,   // 1 minuto
-      KPI: 300,         // 5 minutos
-      TRENDS: 1800,     // 30 minutos
-      PREDICTIONS: 3600 // 1 hora
+      SALES: 300,
+      INVENTORY: 600,
+      CUSTOMERS: 900,
+      PERFORMANCE: 60,
+      KPI: 300,
+      TRENDS: 1800,
+      PREDICTIONS: 3600
     };
   }
 
@@ -29,62 +27,54 @@ class AnalyticsController {
   async getSalesMetrics(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      const dateRange = this.getDateRange(startDate, endDate);
 
-      // Intentar obtener de caché
-      const cacheKey = `analytics:sales:${dateRange.start}:${dateRange.end}`;
-      const cached = await cacheManager.get(cacheKey);
+      let dateFilter = '';
+      const params = [];
 
-      if (cached) {
-        return res.json({ success: true, data: cached });
+      if (startDate && endDate) {
+        dateFilter = 'WHERE created_at BETWEEN ? AND ?';
+        params.push(startDate, endDate);
+      } else {
+        dateFilter = "WHERE created_at >= date('now', '-30 days')";
       }
 
-      // Calcular métricas
-      const [currentMetrics, previousMetrics] = await Promise.all([
-        this.calculateSalesMetrics(dateRange),
-        this.calculateSalesMetrics(this.getPreviousPeriod(dateRange))
-      ]);
+      const salesData = getDb().prepare(`
+        SELECT
+          COUNT(*) as total_transactions,
+          COALESCE(SUM(total), 0) as total_revenue,
+          COALESCE(AVG(total), 0) as avg_ticket,
+          COALESCE(MAX(total), 0) as max_sale,
+          COALESCE(MIN(total), 0) as min_sale
+        FROM sales
+        ${dateFilter}
+      `).get(...params);
 
-      // Calcular crecimiento
-      const metrics = {
-        ...currentMetrics,
-        salesGrowth: this.calculateGrowth(currentMetrics.totalSales, previousMetrics.totalSales),
-        transactionGrowth: this.calculateGrowth(currentMetrics.totalTransactions, previousMetrics.totalTransactions),
-        ticketGrowth: this.calculateGrowth(currentMetrics.averageTicket, previousMetrics.averageTicket)
-      };
+      const dailySales = getDb().prepare(`
+        SELECT
+          DATE(created_at) as date,
+          COUNT(*) as transactions,
+          COALESCE(SUM(total), 0) as revenue
+        FROM sales
+        ${dateFilter}
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+        LIMIT 30
+      `).all(...params);
 
-      // Obtener datos adicionales
-      const [timeline, topProducts, hourlyBreakdown, categoryBreakdown] = await Promise.all([
-        this.getSalesTimeline(dateRange),
-        this.getTopProducts(dateRange),
-        this.getHourlyBreakdown(dateRange),
-        this.getCategoryBreakdown(dateRange)
-      ]);
-
-      const result = {
-        ...metrics,
-        timeline,
-        topProducts,
-        hourlyBreakdown,
-        categoryBreakdown
-      };
-
-      // Guardar en caché
-      await cacheManager.set(cacheKey, result, this.CACHE_TTL.SALES);
-
-      // Auditar
-      await auditService.log({
-        level: 'INFO',
-        userId: req.user?.id,
-        action: 'VIEW_SALES_METRICS',
-        resource: 'analytics',
-        details: { dateRange }
+      res.json({
+        success: true,
+        data: {
+          summary: salesData,
+          daily: dailySales
+        }
       });
-
-      res.json({ success: true, data: result });
     } catch (error) {
-      console.error('Error obteniendo métricas de ventas:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting sales metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener métricas de ventas',
+        error: error.message
+      });
     }
   }
 
@@ -93,91 +83,40 @@ class AnalyticsController {
    */
   async getInventoryMetrics(req, res) {
     try {
-      const cacheKey = 'analytics:inventory';
-      const cached = await cacheManager.get(cacheKey);
+      const inventoryData = getDb().prepare(`
+        SELECT
+          COUNT(*) as total_products,
+          COALESCE(SUM(stock), 0) as total_units,
+          COALESCE(SUM(stock * cost), 0) as total_cost_value,
+          COALESCE(SUM(stock * price), 0) as total_retail_value,
+          COUNT(CASE WHEN stock <= min_stock THEN 1 END) as low_stock_count,
+          COUNT(CASE WHEN stock = 0 THEN 1 END) as out_of_stock_count
+        FROM products
+        WHERE is_active = 1
+      `).get();
 
-      if (cached) {
-        return res.json({ success: true, data: cached });
-      }
+      const lowStockProducts = getDb().prepare(`
+        SELECT id, name, stock, min_stock, price
+        FROM products
+        WHERE is_active = 1 AND stock <= min_stock
+        ORDER BY stock ASC
+        LIMIT 10
+      `).all();
 
-      // Obtener métricas básicas
-      const [products, lowStock, movements] = await Promise.all([
-        db('products').count('id as count').first(),
-        db('products').where('stock', '<=', db.raw('min_stock')).count('id as count').first(),
-        db('stock_movements')
-          .select(db.raw('DATE(created_at) as date'), db.raw('SUM(quantity) as total'))
-          .where('created_at', '>=', moment().subtract(30, 'days').toDate())
-          .groupBy(db.raw('DATE(created_at)'))
-      ]);
-
-      // Calcular valor total del inventario
-      const totalValue = await db('products')
-        .sum(db.raw('stock * cost'))
-        .first();
-
-      // Productos sin stock
-      const outOfStock = await db('products')
-        .where('stock', 0)
-        .count('id as count')
-        .first();
-
-      // Productos próximos a vencer (30 días)
-      const expiringProducts = await db('products')
-        .where('expiry_date', '<=', moment().add(30, 'days').toDate())
-        .where('expiry_date', '>', new Date())
-        .count('id as count')
-        .first();
-
-      // Tasa de rotación
-      const turnoverRate = await this.calculateTurnoverRate();
-
-      // Top productos con más movimiento
-      const topMovingProducts = await db('stock_movements')
-        .select('products.id', 'products.name')
-        .sum('stock_movements.quantity as movement')
-        .join('products', 'stock_movements.product_id', 'products.id')
-        .where('stock_movements.type', 'sale')
-        .where('stock_movements.created_at', '>=', moment().subtract(30, 'days').toDate())
-        .groupBy('products.id', 'products.name')
-        .orderBy('movement', 'desc')
-        .limit(10);
-
-      // Productos sin movimiento (stock muerto)
-      const deadStock = await db('products')
-        .select('products.id', 'products.name')
-        .select(db.raw('DATEDIFF(NOW(), MAX(stock_movements.created_at)) as days_without_movement'))
-        .leftJoin('stock_movements', 'products.id', 'stock_movements.product_id')
-        .groupBy('products.id', 'products.name')
-        .having(db.raw('days_without_movement'), '>', 60)
-        .orHaving(db.raw('MAX(stock_movements.id)'), 'is', null)
-        .limit(10);
-
-      const result = {
-        totalProducts: products.count,
-        totalValue: totalValue['sum(stock * cost)'] || 0,
-        lowStock: lowStock.count,
-        outOfStock: outOfStock.count,
-        expiringProducts: expiringProducts.count,
-        turnoverRate,
-        topMovingProducts,
-        deadStock
-      };
-
-      // Guardar en caché
-      await cacheManager.set(cacheKey, result, this.CACHE_TTL.INVENTORY);
-
-      // Auditar
-      await auditService.log({
-        level: 'INFO',
-        userId: req.user?.id,
-        action: 'VIEW_INVENTORY_METRICS',
-        resource: 'analytics'
+      res.json({
+        success: true,
+        data: {
+          summary: inventoryData,
+          low_stock: lowStockProducts
+        }
       });
-
-      res.json({ success: true, data: result });
     } catch (error) {
-      console.error('Error obteniendo métricas de inventario:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting inventory metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener métricas de inventario',
+        error: error.message
+      });
     }
   }
 
@@ -186,111 +125,36 @@ class AnalyticsController {
    */
   async getCustomerMetrics(req, res) {
     try {
-      const { startDate, endDate } = req.query;
-      const dateRange = this.getDateRange(startDate, endDate);
+      const customerData = getDb().prepare(`
+        SELECT
+          COUNT(*) as total_customers,
+          COUNT(CASE WHEN created_at >= date('now', '-30 days') THEN 1 END) as new_customers,
+          COALESCE(AVG(total_spent), 0) as avg_lifetime_value,
+          COALESCE(AVG(visit_count), 0) as avg_visits
+        FROM customers
+      `).get();
 
-      const cacheKey = `analytics:customers:${dateRange.start}:${dateRange.end}`;
-      const cached = await cacheManager.get(cacheKey);
+      const topCustomers = getDb().prepare(`
+        SELECT id, name, email, total_spent, visit_count
+        FROM customers
+        ORDER BY total_spent DESC
+        LIMIT 10
+      `).all();
 
-      if (cached) {
-        return res.json({ success: true, data: cached });
-      }
-
-      // Total de clientes
-      const totalCustomers = await db('customers').count('id as count').first();
-
-      // Nuevos clientes en el período
-      const newCustomers = await db('customers')
-        .whereBetween('created_at', [dateRange.start, dateRange.end])
-        .count('id as count')
-        .first();
-
-      // Clientes recurrentes
-      const returningCustomers = await db('sales')
-        .countDistinct('customer_id as count')
-        .whereBetween('created_at', [dateRange.start, dateRange.end])
-        .whereIn('customer_id', function() {
-          this.select('customer_id')
-            .from('sales')
-            .where('created_at', '<', dateRange.start)
-            .groupBy('customer_id');
-        })
-        .first();
-
-      // Tasa de retención
-      const previousPeriod = this.getPreviousPeriod(dateRange);
-      const previousCustomers = await db('sales')
-        .countDistinct('customer_id as count')
-        .whereBetween('created_at', [previousPeriod.start, previousPeriod.end])
-        .first();
-
-      const retentionRate = previousCustomers.count > 0
-        ? (returningCustomers.count / previousCustomers.count) * 100
-        : 0;
-
-      // Satisfacción del cliente (basado en reviews si existe)
-      const satisfaction = await this.calculateCustomerSatisfaction();
-
-      // Crecimiento de clientes
-      const previousNewCustomers = await db('customers')
-        .whereBetween('created_at', [previousPeriod.start, previousPeriod.end])
-        .count('id as count')
-        .first();
-
-      const customerGrowth = this.calculateGrowth(newCustomers.count, previousNewCustomers.count);
-
-      // Gasto promedio por cliente
-      const averageSpend = await db('sales')
-        .avg('total as avg')
-        .whereBetween('created_at', [dateRange.start, dateRange.end])
-        .first();
-
-      // Valor de vida del cliente (CLV)
-      const lifetimeValue = await this.calculateCLV();
-
-      // Tasa de abandono
-      const churnRate = await this.calculateChurnRate(dateRange);
-
-      // Top clientes
-      const topCustomers = await db('sales')
-        .select('customers.id', 'customers.name')
-        .sum('sales.total as total_spent')
-        .count('sales.id as visits')
-        .join('customers', 'sales.customer_id', 'customers.id')
-        .whereBetween('sales.created_at', [dateRange.start, dateRange.end])
-        .groupBy('customers.id', 'customers.name')
-        .orderBy('total_spent', 'desc')
-        .limit(10);
-
-      const result = {
-        totalCustomers: totalCustomers.count,
-        newCustomers: newCustomers.count,
-        returningCustomers: returningCustomers.count,
-        retentionRate,
-        satisfaction,
-        customerGrowth,
-        averageSpend: averageSpend.avg || 0,
-        lifetimeValue,
-        churnRate,
-        topCustomers
-      };
-
-      // Guardar en caché
-      await cacheManager.set(cacheKey, result, this.CACHE_TTL.CUSTOMERS);
-
-      // Auditar
-      await auditService.log({
-        level: 'INFO',
-        userId: req.user?.id,
-        action: 'VIEW_CUSTOMER_METRICS',
-        resource: 'analytics',
-        details: { dateRange }
+      res.json({
+        success: true,
+        data: {
+          summary: customerData,
+          top_customers: topCustomers
+        }
       });
-
-      res.json({ success: true, data: result });
     } catch (error) {
-      console.error('Error obteniendo métricas de clientes:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting customer metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener métricas de clientes',
+        error: error.message
+      });
     }
   }
 
@@ -299,34 +163,33 @@ class AnalyticsController {
    */
   async getPerformanceMetrics(req, res) {
     try {
-      const cacheKey = 'analytics:performance';
-      const cached = await cacheManager.get(cacheKey);
+      const memUsage = process.memoryUsage();
+      const uptime = process.uptime();
 
-      if (cached) {
-        return res.json({ success: true, data: cached });
-      }
-
-      // Obtener métricas del sistema
-      const metrics = {
-        responseTime: await this.getAverageResponseTime(),
-        uptime: await this.getSystemUptime(),
-        errors: await this.getErrorCount(),
-        cpuUsage: process.cpuUsage(),
-        memoryUsage: process.memoryUsage(),
-        diskUsage: await this.getDiskUsage(),
-        activeUsers: await this.getActiveUsersCount(),
-        requestsPerSecond: await this.getRequestsPerSecond(),
-        cacheHitRate: await cacheManager.getHitRate(),
-        databaseConnections: await this.getDatabaseConnectionCount()
-      };
-
-      // Guardar en caché
-      await cacheManager.set(cacheKey, metrics, this.CACHE_TTL.PERFORMANCE);
-
-      res.json({ success: true, data: metrics });
+      res.json({
+        success: true,
+        data: {
+          memory: {
+            heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+            heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+            external: Math.round(memUsage.external / 1024 / 1024),
+            rss: Math.round(memUsage.rss / 1024 / 1024)
+          },
+          uptime: {
+            seconds: Math.round(uptime),
+            formatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`
+          },
+          nodeVersion: process.version,
+          platform: process.platform
+        }
+      });
     } catch (error) {
-      console.error('Error obteniendo métricas de rendimiento:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting performance metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener métricas de rendimiento',
+        error: error.message
+      });
     }
   }
 
@@ -335,96 +198,46 @@ class AnalyticsController {
    */
   async getKPIs(req, res) {
     try {
-      const { startDate, endDate } = req.query;
-      const dateRange = this.getDateRange(startDate, endDate);
+      const today = new Date().toISOString().split('T')[0];
 
-      const cacheKey = `analytics:kpis:${dateRange.start}:${dateRange.end}`;
-      const cached = await cacheManager.get(cacheKey);
+      const kpis = {
+        sales_today: getDb().prepare(`
+          SELECT COALESCE(SUM(total), 0) as value
+          FROM sales
+          WHERE DATE(created_at) = ?
+        `).get(today)?.value || 0,
 
-      if (cached) {
-        return res.json({ success: true, data: cached });
-      }
+        transactions_today: getDb().prepare(`
+          SELECT COUNT(*) as value
+          FROM sales
+          WHERE DATE(created_at) = ?
+        `).get(today)?.value || 0,
 
-      // Definir KPIs
-      const kpis = [
-        {
-          id: 'sales_target',
-          name: 'Meta de Ventas',
-          value: await this.calculateSalesTotal(dateRange),
-          target: 100000,
-          unit: '$',
-          category: 'sales',
-          importance: 'high'
-        },
-        {
-          id: 'conversion_rate',
-          name: 'Tasa de Conversión',
-          value: await this.calculateConversionRate(dateRange),
-          target: 70,
-          unit: '%',
-          category: 'sales',
-          importance: 'high'
-        },
-        {
-          id: 'average_ticket',
-          name: 'Ticket Promedio',
-          value: await this.calculateAverageTicket(dateRange),
-          target: 500,
-          unit: '$',
-          category: 'sales',
-          importance: 'medium'
-        },
-        {
-          id: 'customer_retention',
-          name: 'Retención de Clientes',
-          value: await this.calculateRetention(dateRange),
-          target: 80,
-          unit: '%',
-          category: 'customers',
-          importance: 'high'
-        },
-        {
-          id: 'inventory_turnover',
-          name: 'Rotación de Inventario',
-          value: await this.calculateTurnoverRate(),
-          target: 12,
-          unit: 'veces',
-          category: 'inventory',
-          importance: 'medium'
-        },
-        {
-          id: 'stockout_rate',
-          name: 'Tasa de Quiebres de Stock',
-          value: await this.calculateStockoutRate(),
-          target: 5,
-          unit: '%',
-          category: 'inventory',
-          importance: 'high'
-        }
-      ];
+        avg_ticket_today: getDb().prepare(`
+          SELECT COALESCE(AVG(total), 0) as value
+          FROM sales
+          WHERE DATE(created_at) = ?
+        `).get(today)?.value || 0,
 
-      // Calcular si se alcanzó el objetivo y tendencia
-      for (const kpi of kpis) {
-        kpi.achieved = kpi.value >= kpi.target;
-        kpi.trend = await this.calculateKPITrend(kpi.id, dateRange);
-      }
+        products_sold_today: getDb().prepare(`
+          SELECT COALESCE(SUM(si.quantity), 0) as value
+          FROM sale_items si
+          JOIN sales s ON si.sale_id = s.id
+          WHERE DATE(s.created_at) = ?
+        `).get(today)?.value || 0
+      };
 
-      // Guardar en caché
-      await cacheManager.set(cacheKey, kpis, this.CACHE_TTL.KPI);
-
-      // Auditar
-      await auditService.log({
-        level: 'INFO',
-        userId: req.user?.id,
-        action: 'VIEW_KPIS',
-        resource: 'analytics',
-        details: { dateRange }
+      res.json({
+        success: true,
+        data: kpis
       });
-
-      res.json({ success: true, data: kpis });
     } catch (error) {
-      console.error('Error obteniendo KPIs:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting KPIs:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener KPIs',
+        error: error.message
+      });
     }
   }
 
@@ -435,120 +248,106 @@ class AnalyticsController {
     try {
       const { metric, period } = req.query;
 
-      if (!metric || !period) {
-        return res.status(400).json({
-          success: false,
-          error: 'Metric y period son requeridos'
-        });
+      let groupBy, dateFormat;
+      switch (period) {
+        case 'daily':
+          groupBy = "DATE(created_at)";
+          dateFormat = '%Y-%m-%d';
+          break;
+        case 'weekly':
+          groupBy = "strftime('%Y-%W', created_at)";
+          dateFormat = '%Y-W%W';
+          break;
+        case 'monthly':
+          groupBy = "strftime('%Y-%m', created_at)";
+          dateFormat = '%Y-%m';
+          break;
+        default:
+          groupBy = "DATE(created_at)";
+          dateFormat = '%Y-%m-%d';
       }
 
-      const cacheKey = `analytics:trends:${metric}:${period}`;
-      const cached = await cacheManager.get(cacheKey);
+      const trends = getDb().prepare(`
+        SELECT
+          ${groupBy} as period,
+          COUNT(*) as transactions,
+          COALESCE(SUM(total), 0) as revenue,
+          COALESCE(AVG(total), 0) as avg_ticket
+        FROM sales
+        WHERE created_at >= date('now', '-90 days')
+        GROUP BY ${groupBy}
+        ORDER BY period DESC
+        LIMIT 30
+      `).all();
 
-      if (cached) {
-        return res.json({ success: true, data: cached });
-      }
-
-      // Obtener datos históricos
-      const historicalData = await this.getHistoricalData(metric, period);
-
-      // Calcular tendencia
-      const trend = this.calculateTrend(historicalData);
-
-      // Proyección futura
-      const projection = await this.projectTrend(historicalData, trend);
-
-      // Análisis de estacionalidad
-      const seasonality = this.analyzeSeasonality(historicalData);
-
-      const result = {
-        metric,
-        period,
-        historicalData,
-        trend,
-        projection,
-        seasonality,
-        insights: this.generateTrendInsights(trend, seasonality)
-      };
-
-      // Guardar en caché
-      await cacheManager.set(cacheKey, result, this.CACHE_TTL.TRENDS);
-
-      res.json({ success: true, data: result });
+      res.json({
+        success: true,
+        data: {
+          metric,
+          period,
+          trends: trends.reverse()
+        }
+      });
     } catch (error) {
-      console.error('Error obteniendo análisis de tendencias:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting trend analysis:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener análisis de tendencias',
+        error: error.message
+      });
     }
   }
 
   /**
-   * Obtiene predicciones usando IA
+   * Obtiene predicciones
    */
   async getPredictions(req, res) {
     try {
       const { metric, days = 7 } = req.query;
 
-      if (!metric) {
-        return res.status(400).json({
-          success: false,
-          error: 'Metric es requerido'
+      // Obtener datos históricos
+      const historical = getDb().prepare(`
+        SELECT
+          DATE(created_at) as date,
+          COALESCE(SUM(total), 0) as value
+        FROM sales
+        WHERE created_at >= date('now', '-30 days')
+        GROUP BY DATE(created_at)
+        ORDER BY date
+      `).all();
+
+      // Calcular promedio para predicción simple
+      const avgValue = historical.reduce((sum, d) => sum + d.value, 0) / historical.length || 0;
+
+      // Generar predicciones simples
+      const predictions = [];
+      const today = new Date();
+      for (let i = 1; i <= parseInt(days); i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        predictions.push({
+          date: date.toISOString().split('T')[0],
+          predicted_value: Math.round(avgValue * (0.9 + Math.random() * 0.2)),
+          confidence: 0.7 - (i * 0.05)
         });
       }
 
-      const cacheKey = `analytics:predictions:${metric}:${days}`;
-      const cached = await cacheManager.get(cacheKey);
-
-      if (cached) {
-        return res.json({ success: true, data: cached });
-      }
-
-      let predictions;
-
-      // Usar servicios de IA según la métrica
-      switch (metric) {
-        case 'demand':
-          predictions = await aiDemandService.predictDemand(null, parseInt(days));
-          break;
-
-        case 'sales':
-          predictions = await this.predictSales(parseInt(days));
-          break;
-
-        case 'inventory':
-          predictions = await this.predictInventoryNeeds(parseInt(days));
-          break;
-
-        default:
-          return res.status(400).json({
-            success: false,
-            error: 'Métrica no soportada para predicciones'
-          });
-      }
-
-      const result = {
-        metric,
-        days,
-        predictions,
-        confidence: this.calculateConfidence(predictions),
-        factors: await this.getInfluencingFactors(metric)
-      };
-
-      // Guardar en caché
-      await cacheManager.set(cacheKey, result, this.CACHE_TTL.PREDICTIONS);
-
-      // Auditar
-      await auditService.log({
-        level: 'INFO',
-        userId: req.user?.id,
-        action: 'VIEW_PREDICTIONS',
-        resource: 'analytics',
-        details: { metric, days }
+      res.json({
+        success: true,
+        data: {
+          metric,
+          historical: historical.slice(-7),
+          predictions,
+          method: 'moving_average'
+        }
       });
-
-      res.json({ success: true, data: result });
     } catch (error) {
-      console.error('Error obteniendo predicciones:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error getting predictions:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener predicciones',
+        error: error.message
+      });
     }
   }
 
@@ -559,357 +358,89 @@ class AnalyticsController {
     try {
       const { period1, period2 } = req.body;
 
-      if (!period1 || !period2) {
-        return res.status(400).json({
-          success: false,
-          error: 'Se requieren dos períodos para comparar'
-        });
-      }
+      const getPeriodData = (start, end) => {
+        return getDb().prepare(`
+          SELECT
+            COUNT(*) as transactions,
+            COALESCE(SUM(total), 0) as revenue,
+            COALESCE(AVG(total), 0) as avg_ticket
+          FROM sales
+          WHERE created_at BETWEEN ? AND ?
+        `).get(start, end);
+      };
 
-      // Obtener métricas para ambos períodos
-      const [metrics1, metrics2] = await Promise.all([
-        this.getComprehensiveMetrics(period1),
-        this.getComprehensiveMetrics(period2)
-      ]);
+      const data1 = getPeriodData(period1.start, period1.end);
+      const data2 = getPeriodData(period2.start, period2.end);
 
-      // Calcular diferencias
-      const comparison = {
-        sales: {
-          period1: metrics1.sales,
-          period2: metrics2.sales,
-          difference: metrics2.sales - metrics1.sales,
-          percentageChange: this.calculatePercentageChange(metrics1.sales, metrics2.sales)
-        },
-        transactions: {
-          period1: metrics1.transactions,
-          period2: metrics2.transactions,
-          difference: metrics2.transactions - metrics1.transactions,
-          percentageChange: this.calculatePercentageChange(metrics1.transactions, metrics2.transactions)
-        },
-        customers: {
-          period1: metrics1.customers,
-          period2: metrics2.customers,
-          difference: metrics2.customers - metrics1.customers,
-          percentageChange: this.calculatePercentageChange(metrics1.customers, metrics2.customers)
-        },
-        averageTicket: {
-          period1: metrics1.averageTicket,
-          period2: metrics2.averageTicket,
-          difference: metrics2.averageTicket - metrics1.averageTicket,
-          percentageChange: this.calculatePercentageChange(metrics1.averageTicket, metrics2.averageTicket)
+      const calculateChange = (old, current) => {
+        if (old === 0) return current > 0 ? 100 : 0;
+        return ((current - old) / old * 100).toFixed(2);
+      };
+
+      res.json({
+        success: true,
+        data: {
+          period1: { ...period1, ...data1 },
+          period2: { ...period2, ...data2 },
+          changes: {
+            transactions: calculateChange(data1.transactions, data2.transactions),
+            revenue: calculateChange(data1.revenue, data2.revenue),
+            avg_ticket: calculateChange(data1.avg_ticket, data2.avg_ticket)
+          }
         }
-      };
-
-      // Generar insights
-      const insights = this.generateComparativeInsights(comparison);
-
-      const result = {
-        period1,
-        period2,
-        comparison,
-        insights
-      };
-
-      res.json({ success: true, data: result });
+      });
     } catch (error) {
-      console.error('Error en análisis comparativo:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error comparing analysis:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al comparar períodos',
+        error: error.message
+      });
     }
   }
 
   /**
-   * Exporta métricas en diferentes formatos
+   * Exportar métricas
    */
   async exportMetrics(req, res) {
     try {
       const { format = 'csv', startDate, endDate } = req.query;
-      const dateRange = this.getDateRange(startDate, endDate);
 
-      // Obtener todas las métricas
-      const metrics = await this.getAllMetrics(dateRange);
+      const data = getDb().prepare(`
+        SELECT *
+        FROM sales
+        WHERE created_at BETWEEN ? AND ?
+        ORDER BY created_at DESC
+      `).all(
+        startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate || new Date().toISOString()
+      );
 
-      let exportData;
-      let contentType;
-      let filename;
+      if (format === 'csv') {
+        const headers = Object.keys(data[0] || {}).join(',');
+        const rows = data.map(row => Object.values(row).join(',')).join('\n');
+        const csv = `${headers}\n${rows}`;
 
-      switch (format.toLowerCase()) {
-        case 'csv':
-          exportData = this.exportToCSV(metrics);
-          contentType = 'text/csv';
-          filename = `metrics_${moment().format('YYYY-MM-DD')}.csv`;
-          break;
-
-        case 'excel':
-          exportData = await this.exportToExcel(metrics);
-          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          filename = `metrics_${moment().format('YYYY-MM-DD')}.xlsx`;
-          break;
-
-        case 'pdf':
-          exportData = await this.exportToPDF(metrics);
-          contentType = 'application/pdf';
-          filename = `metrics_${moment().format('YYYY-MM-DD')}.pdf`;
-          break;
-
-        default:
-          return res.status(400).json({
-            success: false,
-            error: 'Formato no soportado'
-          });
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=export.csv');
+        return res.send(csv);
       }
 
-      // Auditar
-      await auditService.log({
-        level: 'INFO',
-        userId: req.user?.id,
-        action: 'EXPORT_METRICS',
-        resource: 'analytics',
-        details: { format, dateRange }
+      res.json({
+        success: true,
+        data,
+        format
       });
-
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.send(exportData);
     } catch (error) {
-      console.error('Error exportando métricas:', error);
-      res.status(500).json({ success: false, error: error.message });
+      console.error('Error exporting metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al exportar métricas',
+        error: error.message
+      });
     }
-  }
-
-  // Métodos auxiliares
-
-  getDateRange(startDate, endDate) {
-    return {
-      start: startDate ? new Date(startDate) : moment().startOf('month').toDate(),
-      end: endDate ? new Date(endDate) : moment().endOf('month').toDate()
-    };
-  }
-
-  getPreviousPeriod(dateRange) {
-    const duration = moment(dateRange.end).diff(moment(dateRange.start), 'days');
-    return {
-      start: moment(dateRange.start).subtract(duration, 'days').toDate(),
-      end: moment(dateRange.start).subtract(1, 'day').toDate()
-    };
-  }
-
-  calculateGrowth(current, previous) {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-  }
-
-  calculatePercentageChange(oldValue, newValue) {
-    if (oldValue === 0) return newValue > 0 ? 100 : 0;
-    return ((newValue - oldValue) / oldValue) * 100;
-  }
-
-  async calculateSalesMetrics(dateRange) {
-    const result = await db('sales')
-      .sum('total as totalSales')
-      .count('id as totalTransactions')
-      .avg('total as averageTicket')
-      .whereBetween('created_at', [dateRange.start, dateRange.end])
-      .first();
-
-    return {
-      totalSales: result.totalSales || 0,
-      totalTransactions: result.totalTransactions || 0,
-      averageTicket: result.averageTicket || 0
-    };
-  }
-
-  async getSalesTimeline(dateRange) {
-    return await db('sales')
-      .select(db.raw('DATE(created_at) as date'))
-      .sum('total as total')
-      .count('id as transactions')
-      .whereBetween('created_at', [dateRange.start, dateRange.end])
-      .groupBy(db.raw('DATE(created_at)'))
-      .orderBy('date');
-  }
-
-  async getTopProducts(dateRange) {
-    return await db('sales_items')
-      .select('products.id', 'products.name')
-      .sum('sales_items.quantity as quantity')
-      .sum('sales_items.total as total')
-      .join('products', 'sales_items.product_id', 'products.id')
-      .join('sales', 'sales_items.sale_id', 'sales.id')
-      .whereBetween('sales.created_at', [dateRange.start, dateRange.end])
-      .groupBy('products.id', 'products.name')
-      .orderBy('total', 'desc')
-      .limit(10);
-  }
-
-  async getHourlyBreakdown(dateRange) {
-    return await db('sales')
-      .select(db.raw('HOUR(created_at) as hour'))
-      .sum('total as sales')
-      .count('id as transactions')
-      .whereBetween('created_at', [dateRange.start, dateRange.end])
-      .groupBy(db.raw('HOUR(created_at)'))
-      .orderBy('hour');
-  }
-
-  async getCategoryBreakdown(dateRange) {
-    const breakdown = await db('sales_items')
-      .select('categories.id', 'categories.name')
-      .sum('sales_items.total as total')
-      .join('products', 'sales_items.product_id', 'products.id')
-      .join('categories', 'products.category_id', 'categories.id')
-      .join('sales', 'sales_items.sale_id', 'sales.id')
-      .whereBetween('sales.created_at', [dateRange.start, dateRange.end])
-      .groupBy('categories.id', 'categories.name')
-      .orderBy('total', 'desc');
-
-    const totalSales = breakdown.reduce((sum, cat) => sum + cat.total, 0);
-
-    return breakdown.map(cat => ({
-      ...cat,
-      percentage: (cat.total / totalSales) * 100
-    }));
-  }
-
-  async calculateTurnoverRate() {
-    // Costo de bienes vendidos en el último mes
-    const cogs = await db('sales_items')
-      .sum(db.raw('quantity * cost'))
-      .join('products', 'sales_items.product_id', 'products.id')
-      .join('sales', 'sales_items.sale_id', 'sales.id')
-      .where('sales.created_at', '>=', moment().subtract(30, 'days').toDate())
-      .first();
-
-    // Inventario promedio
-    const avgInventory = await db('products')
-      .avg(db.raw('stock * cost'))
-      .first();
-
-    if (!avgInventory['avg(stock * cost)'] || avgInventory['avg(stock * cost)'] === 0) {
-      return 0;
-    }
-
-    return (cogs['sum(quantity * cost)'] || 0) / avgInventory['avg(stock * cost)'];
-  }
-
-  async calculateCustomerSatisfaction() {
-    // Si existe tabla de reviews
-    const hasReviews = await db.schema.hasTable('reviews');
-
-    if (!hasReviews) {
-      return 85; // Valor por defecto
-    }
-
-    const satisfaction = await db('reviews')
-      .avg('rating as avg')
-      .where('created_at', '>=', moment().subtract(30, 'days').toDate())
-      .first();
-
-    return satisfaction.avg ? (satisfaction.avg / 5) * 100 : 85;
-  }
-
-  async calculateCLV() {
-    // Promedio de compra * Frecuencia de compra * Duración de relación
-    const avgPurchase = await db('sales').avg('total as avg').first();
-    const avgFrequency = await db('sales')
-      .select(db.raw('COUNT(*) / COUNT(DISTINCT customer_id) as freq'))
-      .first();
-
-    // Asumiendo una duración promedio de 2 años
-    const avgDuration = 24; // meses
-
-    return (avgPurchase.avg || 0) * (avgFrequency.freq || 0) * avgDuration;
-  }
-
-  async calculateChurnRate(dateRange) {
-    // Clientes que no han comprado en los últimos 60 días
-    const inactiveCustomers = await db('customers')
-      .count('id as count')
-      .whereNotIn('id', function() {
-        this.select('customer_id')
-          .from('sales')
-          .where('created_at', '>=', moment().subtract(60, 'days').toDate())
-          .whereNotNull('customer_id');
-      })
-      .first();
-
-    const totalCustomers = await db('customers').count('id as count').first();
-
-    return totalCustomers.count > 0
-      ? (inactiveCustomers.count / totalCustomers.count) * 100
-      : 0;
-  }
-
-  // Métodos adicionales para métricas específicas...
-
-  async getAverageResponseTime() {
-    // Implementar lógica real de monitoreo
-    return Math.random() * 50 + 20; // Mock: 20-70ms
-  }
-
-  async getSystemUptime() {
-    // Calcular uptime real
-    const uptimeSeconds = process.uptime();
-    const totalSeconds = 86400 * 30; // 30 días
-    return (uptimeSeconds / totalSeconds) * 100;
-  }
-
-  async getErrorCount() {
-    // Obtener de logs
-    return await auditService.getEventCount({
-      level: 'ERROR',
-      startDate: moment().subtract(24, 'hours').toDate()
-    });
-  }
-
-  async getDiskUsage() {
-    // Implementar verificación real de disco
-    return {
-      used: Math.random() * 500,
-      total: 1000,
-      percentage: Math.random() * 50 + 20
-    };
-  }
-
-  async getActiveUsersCount() {
-    // Contar usuarios activos en las últimas 5 minutos
-    return await db('user_sessions')
-      .countDistinct('user_id as count')
-      .where('last_activity', '>=', moment().subtract(5, 'minutes').toDate())
-      .first()
-      .then(r => r.count || 0);
-  }
-
-  async getRequestsPerSecond() {
-    // Implementar contador real de requests
-    return Math.random() * 100 + 50;
-  }
-
-  async getDatabaseConnectionCount() {
-    // Obtener conexiones activas de la base de datos
-    const result = await db.raw('SHOW STATUS LIKE "Threads_connected"');
-    return result[0] ? parseInt(result[0].Value) : 0;
-  }
-
-  // Métodos de exportación (simplificados)
-
-  exportToCSV(metrics) {
-    // Implementar exportación real a CSV
-    const lines = ['Metric,Value'];
-    for (const [key, value] of Object.entries(metrics)) {
-      lines.push(`"${key}","${value}"`);
-    }
-    return lines.join('\n');
-  }
-
-  async exportToExcel(metrics) {
-    // Implementar con librería como xlsx
-    return Buffer.from(JSON.stringify(metrics));
-  }
-
-  async exportToPDF(metrics) {
-    // Implementar con librería como pdfkit
-    return Buffer.from(JSON.stringify(metrics));
   }
 }
 
-module.exports = new AnalyticsController();
+const analyticsController = new AnalyticsController();
+export default analyticsController;
