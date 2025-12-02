@@ -3,8 +3,30 @@
  * On-screen keyboard for tablets and touch devices
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Delete, Check, X } from 'lucide-react';
+
+/**
+ * Safe calculator function - replaces eval() for security
+ */
+const safeCalculate = (expression: string): string => {
+  try {
+    const sanitized = expression.replace(/\s/g, '');
+    if (!/^[\d+\-*/().]+$/.test(sanitized)) {
+      return 'Error';
+    }
+    if (/[+\-*/]{2,}/.test(sanitized)) {
+      return 'Error';
+    }
+    const result = new Function(`"use strict"; return (${sanitized})`)();
+    if (typeof result !== 'number' || !isFinite(result)) {
+      return 'Error';
+    }
+    return String(Math.round(result * 100) / 100);
+  } catch {
+    return 'Error';
+  }
+};
 
 interface VirtualKeyboardProps {
   onInput: (value: string) => void;
@@ -55,11 +77,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
         break;
       case '=':
         if (mode === 'calculator') {
-          try {
-            newValue = String(eval(value));
-          } catch {
-            newValue = 'Error';
-          }
+          newValue = safeCalculate(value);
         }
         break;
       default:
