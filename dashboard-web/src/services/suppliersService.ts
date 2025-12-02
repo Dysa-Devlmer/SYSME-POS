@@ -3,7 +3,7 @@
  * Handles all API calls related to suppliers, purchase orders, and payments
  */
 
-import api from './api';
+import api from '../api/client';
 
 // ============================================
 // INTERFACES

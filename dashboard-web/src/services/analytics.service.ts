@@ -3,7 +3,7 @@
  * Gestiona todas las métricas y KPIs del sistema
  */
 
-import api from './api';
+import api from '../api/client';
 
 export interface DateRange {
   start: Date;
