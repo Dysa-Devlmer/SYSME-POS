@@ -12,6 +12,14 @@ import { salesService, PaymentDetails } from '@/api/salesService';
 import { cashService, CashSession } from '@/api/cashService';
 import tipsService from '@/api/tipsService';
 
+// Nuevos componentes integrados
+import VirtualKeyboard from '@/components/ui/VirtualKeyboard';
+import QuickNotes from '@/components/kitchen/QuickNotes';
+import FavoritesFilter from '@/components/pos/FavoritesFilter';
+import PaymentMethodsExtended from '@/components/pos/PaymentMethodsExtended';
+import PendingSalesBadge from '@/components/layout/PendingSalesBadge';
+import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
+
 interface Mesa {
   id: number;
   table_number: string;
@@ -100,6 +108,28 @@ const POSVentas: React.FC = () => {
   const [cashSession, setCashSession] = useState<CashSession | null>(null);
   const [showOpenCashModal, setShowOpenCashModal] = useState(false);
   const [showCloseCashModal, setShowCloseCashModal] = useState(false);
+
+  // Estados de los nuevos componentes integrados
+  const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
+  const [keyboardValue, setKeyboardValue] = useState('');
+  const [keyboardMode, setKeyboardMode] = useState<'numeric' | 'full' | 'calculator'>('numeric');
+  const [selectedItemForQuantity, setSelectedItemForQuantity] = useState<SaleItem | null>(null);
+  const [showQuickNotes, setShowQuickNotes] = useState(false);
+  const [selectedItemForNotes, setSelectedItemForNotes] = useState<SaleItem | null>(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
+  const [showPaymentMethodsExtended, setShowPaymentMethodsExtended] = useState(false);
+
+  // Keyboard Shortcuts Integration
+  useKeyboardShortcuts({
+    onNewSale: () => setShowMesaSelector(true),
+    onFinalize: () => currentSale && startPaymentProcess(),
+    onCancel: () => setCurrentSale(null),
+    onReprintLast: () => {/* Implementar reimpresión */},
+    onOpenSales: () => navigate('/pos/parked'),
+    onKitchen: () => navigate('/pos/kitchen'),
+    userId: user?.id.toString() || ''
+  });
 
   useEffect(() => {
     loadMesas();
@@ -582,7 +612,60 @@ const POSVentas: React.FC = () => {
     }
   };
 
-  const filteredProducts = products.filter(product =>
+  // Handlers para nuevos componentes
+  const handleFavoritesFilterChange = (showFavOnly: boolean, favs?: Product[]) => {
+    setShowFavoritesOnly(showFavOnly);
+    if (showFavOnly && favs) {
+      setFavoriteProducts(favs);
+    }
+  };
+
+  const handleQuickNoteSelect = (note: string) => {
+    if (selectedItemForNotes && currentSale) {
+      const updatedItems = currentSale.items.map(item =>
+        item === selectedItemForNotes ? { ...item, notes: note } : item
+      );
+      setCurrentSale({ ...currentSale, items: updatedItems });
+      setShowQuickNotes(false);
+      setSelectedItemForNotes(null);
+    }
+  };
+
+  const handleKeyboardInput = (value: string) => {
+    setKeyboardValue(value);
+  };
+
+  const handleKeyboardConfirm = () => {
+    if (selectedItemForQuantity && currentSale) {
+      const quantity = parseFloat(keyboardValue);
+      if (quantity > 0) {
+        const updatedItems = currentSale.items.map(item =>
+          item === selectedItemForQuantity
+            ? { ...item, quantity, total: item.unit_price * quantity }
+            : item
+        );
+        setCurrentSale({ ...currentSale, items: updatedItems });
+        calculateTotals(updatedItems);
+      }
+    }
+    setShowVirtualKeyboard(false);
+    setKeyboardValue('');
+    setSelectedItemForQuantity(null);
+  };
+
+  const openQuantityKeyboard = (item: SaleItem) => {
+    setSelectedItemForQuantity(item);
+    setKeyboardValue(item.quantity.toString());
+    setKeyboardMode('numeric');
+    setShowVirtualKeyboard(true);
+  };
+
+  const openNotesModal = (item: SaleItem) => {
+    setSelectedItemForNotes(item);
+    setShowQuickNotes(true);
+  };
+
+  const filteredProducts = (showFavoritesOnly ? favoriteProducts : products).filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -598,6 +681,9 @@ const POSVentas: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-4">
+          {/* Pending Sales Badge */}
+          <PendingSalesBadge userId={user?.id?.toString() || ''} showAll={false} />
+
           <div className="text-right">
             <p className="font-semibold">{user?.username}</p>
             <p className="text-blue-200 text-xs">{user?.role}</p>
@@ -670,6 +756,14 @@ const POSVentas: React.FC = () => {
 
           {showProductSearch && (
             <div>
+              {/* Favorites Filter Button */}
+              <div className="mb-2">
+                <FavoritesFilter
+                  userId={user?.id?.toString() || ''}
+                  onFilterChange={handleFavoritesFilterChange}
+                />
+              </div>
+
               <input
                 type="text"
                 placeholder="Buscar producto..."
@@ -763,6 +857,32 @@ const POSVentas: React.FC = () => {
                               ))}
                             </div>
                           )}
+
+                          {/* Show notes if present */}
+                          {item.notes && (
+                            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                              <span className="font-semibold text-yellow-800">Nota: </span>
+                              <span className="text-yellow-700">{item.notes}</span>
+                            </div>
+                          )}
+
+                          {/* Action buttons */}
+                          <div className="mt-2 flex space-x-1">
+                            <button
+                              onClick={() => openQuantityKeyboard(item)}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                              title="Cambiar cantidad"
+                            >
+                              🔢 Cant.
+                            </button>
+                            <button
+                              onClick={() => openNotesModal(item)}
+                              className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs hover:bg-yellow-200"
+                              title="Agregar nota de cocina"
+                            >
+                              📝 Nota
+                            </button>
+                          </div>
                         </div>
 
                         <div className="flex items-center space-x-2">
@@ -822,11 +942,18 @@ const POSVentas: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={startPaymentProcess}
+                  onClick={() => setShowPaymentMethodsExtended(true)}
                   disabled={loading || currentSale.items.length === 0}
                   className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 font-bold text-lg mt-4"
                 >
                   {loading ? 'Procesando...' : '💳 PROCEDER AL PAGO'}
+                </button>
+                <button
+                  onClick={() => startPaymentProcess()}
+                  disabled={loading || currentSale.items.length === 0}
+                  className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium text-sm mt-2"
+                >
+                  🔄 Pago Sistema Antiguo
                 </button>
               </div>
             </div>
@@ -1071,6 +1198,53 @@ const POSVentas: React.FC = () => {
           onSuccess={handleCashSessionClosed}
           session={cashSession}
         />
+      )}
+
+      {/* Modal Teclado Virtual */}
+      {showVirtualKeyboard && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <VirtualKeyboard
+            onInput={handleKeyboardInput}
+            onEnter={handleKeyboardConfirm}
+            onCancel={() => {
+              setShowVirtualKeyboard(false);
+              setKeyboardValue('');
+              setSelectedItemForQuantity(null);
+            }}
+            initialValue={keyboardValue}
+            mode={keyboardMode}
+            title="Ingresar Cantidad"
+          />
+        </div>
+      )}
+
+      {/* Modal Notas Rápidas */}
+      {showQuickNotes && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <QuickNotes
+            onSelectNote={handleQuickNoteSelect}
+            onClose={() => {
+              setShowQuickNotes(false);
+              setSelectedItemForNotes(null);
+            }}
+            allowCustom={true}
+          />
+        </div>
+      )}
+
+      {/* Modal Métodos de Pago Extendidos */}
+      {showPaymentMethodsExtended && currentSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <PaymentMethodsExtended
+            saleTotal={currentSale.total_amount}
+            onPaymentComplete={(payments) => {
+              // Procesar pagos y finalizar venta
+              finalizeSale(payments);
+              setShowPaymentMethodsExtended(false);
+            }}
+            onCancel={() => setShowPaymentMethodsExtended(false)}
+          />
+        </div>
       )}
       </div>
     </div>
