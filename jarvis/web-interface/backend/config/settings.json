@@ -1,0 +1,69 @@
+{
+  "system": {
+    "projectName": "JARVIS",
+    "version": "2.0.0",
+    "language": "es",
+    "timezone": "America/Mexico_City"
+  },
+  "agent": {
+    "maxConcurrentTasks": 3,
+    "defaultStrategy": "balanced",
+    "maxRetries": 3,
+    "timeout": 300000
+  },
+  "scheduler": {
+    "enabled": true,
+    "maxTasks": 100,
+    "defaultRetries": 3
+  },
+  "logging": {
+    "level": "info",
+    "enableConsole": true,
+    "maxFileSize": "20m",
+    "maxFiles": "30d"
+  },
+  "monitoring": {
+    "enabled": true,
+    "interval": 5000,
+    "alerts": {
+      "cpu": 80,
+      "memory": 85,
+      "disk": 90
+    }
+  },
+  "notifications": {
+    "enabled": true,
+    "maxNotifications": 100,
+    "retentionDays": 30,
+    "pushEnabled": true
+  },
+  "search": {
+    "enabled": true,
+    "maxResults": 100,
+    "excludePatterns": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      ".next"
+    ]
+  },
+  "voice": {
+    "enabled": true,
+    "language": "es-ES",
+    "autoSpeak": true,
+    "speechRate": 1
+  },
+  "ui": {
+    "theme": "dark",
+    "compactMode": false,
+    "animations": true,
+    "fontSize": "medium"
+  },
+  "server": {
+    "port": 3001,
+    "host": "localhost",
+    "cors": true,
+    "rateLimit": 100
+  }
+}

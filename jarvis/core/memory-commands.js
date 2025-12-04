@@ -1,0 +1,605 @@
+// core/memory-commands.js
+// Comandos de memoria para JARVIS - Permite recordar conversaciones pasadas
+
+import MemoryIntegration from './memory-integration.js';
+
+class MemoryCommands {
+  constructor() {
+    this.memory = new MemoryIntegration();
+    this.initialized = false;
+  }
+
+  async initialize() {
+    if (!this.initialized) {
+      await this.memory.initialize();
+      this.initialized = true;
+    }
+  }
+
+  // ==========================================
+  // COMANDO: Recordar conversaciones
+  // ==========================================
+
+  async recordar(keyword, limit = 5) {
+    await this.initialize();
+
+    const conversations = await this.memory.searchMemory(keyword);
+
+    if (conversations.length === 0) {
+      return {
+        success: false,
+        message: `No encontré conversaciones relacionadas con "${keyword}". Tal vez no hablamos de eso antes, Señor.`,
+        data: []
+      };
+    }
+
+    const formatted = conversations.slice(0, limit).map((conv, index) => {
+      const date = new Date(conv.timestamp);
+      return {
+        numero: index + 1,
+        fecha: date.toLocaleString('es-ES'),
+        usuario: conv.user_message.substring(0, 100) + (conv.user_message.length > 100 ? '...' : ''),
+        jarvis: conv.jarvis_response.substring(0, 100) + (conv.jarvis_response.length > 100 ? '...' : ''),
+        importancia: conv.importance_level,
+        tags: JSON.parse(conv.tags || '[]')
+      };
+    });
+
+    return {
+      success: true,
+      message: `Encontré ${conversations.length} conversación(es) sobre "${keyword}", Señor. Aquí las más relevantes:`,
+      data: formatted,
+      total: conversations.length
+    };
+  }
+
+  // ==========================================
+  // COMANDO: Ver proyectos
+  // ==========================================
+
+  async verProyectos() {
+    await this.initialize();
+
+    const projects = await this.memory.memory.getProjects();
+
+    if (projects.length === 0) {
+      return {
+        success: false,
+        message: "No tengo proyectos guardados todavía, Señor. Deberíamos empezar uno.",
+        data: []
+      };
+    }
+
+    const formatted = projects.map((proj, index) => {
+      const lastWorked = new Date(proj.last_worked);
+      const techs = JSON.parse(proj.technologies || '[]');
+
+      return {
+        numero: index + 1,
+        nombre: proj.project_name,
+        estado: proj.status,
+        descripcion: proj.description,
+        tecnologias: techs.join(', '),
+        ultimaVez: lastWorked.toLocaleString('es-ES')
+      };
+    });
+
+    return {
+      success: true,
+      message: `Tengo ${projects.length} proyecto(s) en memoria, Señor:`,
+      data: formatted
+    };
+  }
+
+  // ==========================================
+  // COMANDO: Ver estadísticas de memoria
+  // ==========================================
+
+  async estadisticas() {
+    await this.initialize();
+
+    const stats = await this.memory.getMemoryStats();
+    const summary = await this.memory.getMemorySummary();
+
+    return {
+      success: true,
+      message: "Aquí está el resumen completo de mi memoria, Señor:",
+      stats: {
+        conversaciones: stats.totalConversations,
+        momentosEmocionales: stats.emotionalMoments,
+        patronesAprendidos: stats.patternsLearned,
+        proyectos: stats.projectsTracked,
+        preferencias: stats.preferencesLearned,
+        sesiones: stats.totalSessions
+      },
+      summary: summary
+    };
+  }
+
+  // ==========================================
+  // COMANDO: Conversaciones recientes
+  // ==========================================
+
+  async recientes(limit = 10) {
+    await this.initialize();
+
+    const conversations = await this.memory.memory.getRecentConversations(limit);
+
+    if (conversations.length === 0) {
+      return {
+        success: false,
+        message: "Esta es mi primera sesión con usted, Señor. No hay conversaciones previas.",
+        data: []
+      };
+    }
+
+    const formatted = conversations.map((conv, index) => {
+      const date = new Date(conv.timestamp);
+      return {
+        numero: index + 1,
+        fecha: date.toLocaleString('es-ES'),
+        usuario: conv.user_message.substring(0, 80) + '...',
+        jarvis: conv.jarvis_response.substring(0, 80) + '...',
+        importancia: conv.importance_level
+      };
+    });
+
+    return {
+      success: true,
+      message: `Aquí están las últimas ${conversations.length} conversaciones, Señor:`,
+      data: formatted
+    };
+  }
+
+  // ==========================================
+  // COMANDO: Preferencias aprendidas
+  // ==========================================
+
+  async preferencias() {
+    await this.initialize();
+
+    const prefs = await this.memory.memory.getAllPreferences();
+
+    if (prefs.length === 0) {
+      return {
+        success: false,
+        message: "Todavía estoy aprendiendo sus preferencias, Señor.",
+        data: []
+      };
+    }
+
+    const formatted = prefs.map((pref, index) => {
+      const learned = new Date(pref.learned_date);
+      return {
+        numero: index + 1,
+        tipo: pref.preference_key,
+        valor: pref.preference_value,
+        confianza: (pref.confidence * 100).toFixed(0) + '%',
+        vecesObservado: pref.times_observed,
+        aprendido: learned.toLocaleDateString('es-ES')
+      };
+    });
+
+    return {
+      success: true,
+      message: `He aprendido ${prefs.length} preferencia(s) suya, Señor:`,
+      data: formatted
+    };
+  }
+
+  // ==========================================
+  // COMANDO: Momentos significativos
+  // ==========================================
+
+  async momentosSignificativos(limit = 5) {
+    await this.initialize();
+
+    const moments = await this.memory.memory.getEmotionalMoments(limit);
+
+    if (moments.length === 0) {
+      return {
+        success: false,
+        message: "Todavía no hemos tenido momentos particularmente significativos, Señor.",
+        data: []
+      };
+    }
+
+    const formatted = moments.map((moment, index) => {
+      const date = new Date(moment.timestamp);
+      return {
+        numero: index + 1,
+        tipo: moment.moment_type,
+        descripcion: moment.description,
+        pesoEmocional: (moment.emotional_weight * 100).toFixed(0) + '%',
+        fecha: date.toLocaleString('es-ES')
+      };
+    });
+
+    return {
+      success: true,
+      message: `Estos son los ${moments.length} momento(s) más significativo(s), Señor:`,
+      data: formatted
+    };
+  }
+
+  // ==========================================
+  // COMANDO: Patrones aprendidos
+  // ==========================================
+
+  async patronesAprendidos(limit = 10) {
+    await this.initialize();
+
+    const patterns = await this.memory.memory.getLearnedPatterns();
+
+    if (patterns.length === 0) {
+      return {
+        success: false,
+        message: "Aún no he identificado patrones de solución, Señor.",
+        data: []
+      };
+    }
+
+    const formatted = patterns.slice(0, limit).map((pattern, index) => {
+      const lastUsed = new Date(pattern.last_used);
+      return {
+        numero: index + 1,
+        tipo: pattern.pattern_type,
+        descripcion: pattern.pattern_description.substring(0, 100) + '...',
+        solucion: pattern.solution.substring(0, 100) + '...',
+        exito: (pattern.success_rate * 100).toFixed(0) + '%',
+        vecesUsado: pattern.times_used,
+        confianza: (pattern.confidence * 100).toFixed(0) + '%',
+        ultimaVez: lastUsed.toLocaleDateString('es-ES')
+      };
+    });
+
+    return {
+      success: true,
+      message: `He aprendido ${patterns.length} patrón(es) de solución, Señor. Los más usados:`,
+      data: formatted
+    };
+  }
+
+  // ==========================================
+  // GUARDAR CONVERSACIÓN MANUALMENTE
+  // ==========================================
+
+  async guardarConversacion(userMessage, jarvisResponse, metadata = {}) {
+    await this.initialize();
+
+    const conversationId = await this.memory.saveInteraction(
+      userMessage,
+      jarvisResponse,
+      metadata
+    );
+
+    if (conversationId) {
+      return {
+        success: true,
+        message: `Conversación guardada con ID: ${conversationId}, Señor.`,
+        id: conversationId
+      };
+    } else {
+      return {
+        success: false,
+        message: "Hubo un problema guardando la conversación, Señor."
+      };
+    }
+  }
+
+  // ==========================================
+  // FORMATEAR SALIDA PARA CLAUDE
+  // ==========================================
+
+  formatParaClaude(resultado) {
+    if (!resultado.success) {
+      return `❌ ${resultado.message}`;
+    }
+
+    let output = `✅ ${resultado.message}\n\n`;
+
+    if (resultado.stats) {
+      output += `📊 **Estadísticas de Memoria:**\n`;
+      output += `   - 💬 Conversaciones: ${resultado.stats.conversaciones}\n`;
+      output += `   - 💙 Momentos emocionales: ${resultado.stats.momentosEmocionales}\n`;
+      output += `   - 🧠 Patrones aprendidos: ${resultado.stats.patronesAprendidos}\n`;
+      output += `   - 📁 Proyectos: ${resultado.stats.proyectos}\n`;
+      output += `   - ⚙️ Preferencias: ${resultado.stats.preferencias}\n`;
+      output += `   - 🔄 Sesiones: ${resultado.stats.sesiones}\n`;
+    }
+
+    if (resultado.data && resultado.data.length > 0) {
+      output += '\n';
+      resultado.data.forEach(item => {
+        output += `**${item.numero}.**\n`;
+        Object.keys(item).forEach(key => {
+          if (key !== 'numero') {
+            output += `   - **${key}:** ${item[key]}\n`;
+          }
+        });
+        output += '\n';
+      });
+    }
+
+    return output;
+  }
+
+  // ========================================
+  // FASE 1: COMANDOS NUEVOS INTERACTIVOS
+  // ========================================
+
+  /**
+   * 💾 COMANDO: "recuerda que [texto]"
+   * Guarda un recuerdo nuevo en memoria persistente
+   */
+  async remember(texto) {
+    await this.initialize();
+
+    const timestamp = new Date().toISOString();
+    const memoryId = `mem_${Date.now()}`;
+
+    // Guardar en memory-integration
+    await this.memory.saveInteraction(
+      `Usuario solicita recordar: ${texto}`,
+      `Recuerdo guardado: ${texto}`,
+      {
+        type: 'user_memory',
+        importance: 8,
+        tags: this.extractTags(texto)
+      }
+    );
+
+    return {
+      success: true,
+      message: `✅ Recuerdo guardado, Señor. ID: ${memoryId}`,
+      data: { id: memoryId, content: texto, timestamp }
+    };
+  }
+
+  /**
+   * 🔍 COMANDO: "busca en memoria [query]"
+   * Búsqueda full-text en toda la memoria
+   */
+  async searchMemory(query) {
+    await this.initialize();
+
+    const results = await this.memory.searchMemory(query);
+
+    if (results.length === 0) {
+      return {
+        success: false,
+        message: `No encontré nada relacionado con "${query}", Señor.`,
+        data: []
+      };
+    }
+
+    const formatted = results.slice(0, 10).map((r, i) => ({
+      numero: i + 1,
+      fecha: new Date(r.timestamp).toLocaleDateString('es-ES'),
+      contenido: r.user_message.substring(0, 100) + '...',
+      relevancia: `${((r.importance_level || 5) * 10)}%`
+    }));
+
+    return {
+      success: true,
+      message: `🔍 Encontré ${results.length} resultado(s) para "${query}", Señor:`,
+      data: formatted,
+      total: results.length
+    };
+  }
+
+  /**
+   * 📅 COMANDO: "qué hicimos el [fecha]"
+   * Recupera eventos de una fecha específica
+   */
+  async getHistoryByDate(fechaStr) {
+    await this.initialize();
+
+    const fecha = this.parseNaturalDate(fechaStr);
+
+    if (!fecha) {
+      return {
+        success: false,
+        message: `No pude entender la fecha: "${fechaStr}", Señor.`
+      };
+    }
+
+    // Buscar sesión de esa fecha
+    const conversations = await this.memory.memory.getRecentConversations(100);
+    const filtered = conversations.filter(c => {
+      const convDate = new Date(c.timestamp).toISOString().split('T')[0];
+      return convDate === fecha;
+    });
+
+    if (filtered.length === 0) {
+      return {
+        success: false,
+        message: `No tengo registros del ${fecha}, Señor.`,
+        data: []
+      };
+    }
+
+    const formatted = filtered.map((c, i) => ({
+      numero: i + 1,
+      hora: new Date(c.timestamp).toLocaleTimeString('es-ES'),
+      usuario: c.user_message.substring(0, 80) + '...',
+      jarvis: c.jarvis_response.substring(0, 80) + '...'
+    }));
+
+    return {
+      success: true,
+      message: `📅 El ${fecha} tuvimos ${filtered.length} interacción(es), Señor:`,
+      data: formatted
+    };
+  }
+
+  /**
+   * 📊 COMANDO: "estadísticas de memoria"
+   * (Ya existe como estadisticas(), mantener compatibilidad)
+   */
+
+  /**
+   * ⏰ COMANDO: "última sesión"
+   * Resumen de las últimas 24 horas
+   */
+  async getLastSession() {
+    await this.initialize();
+
+    const now = new Date();
+    const yesterday = new Date(now - 24 * 60 * 60 * 1000);
+
+    const conversations = await this.memory.memory.getRecentConversations(50);
+    const recent = conversations.filter(c => new Date(c.timestamp) >= yesterday);
+
+    if (recent.length === 0) {
+      return {
+        success: false,
+        message: `No hay actividad en las últimas 24 horas, Señor.`,
+        data: []
+      };
+    }
+
+    const formatted = recent.slice(0, 10).map((c, i) => {
+      // Proteger contra null/undefined
+      const userMsg = c.user_message || c.content || '';
+      const jarvisMsg = c.jarvis_response || '';
+
+      return {
+        numero: i + 1,
+        hace: this.timeAgo(new Date(c.timestamp)),
+        usuario: userMsg.substring(0, 60) + (userMsg.length > 60 ? '...' : ''),
+        jarvis: jarvisMsg.substring(0, 60) + (jarvisMsg.length > 60 ? '...' : ''),
+        content: userMsg,
+        timeAgo: this.timeAgo(new Date(c.timestamp))
+      };
+    });
+
+    return {
+      success: true,
+      message: `⏰ Últimas 24 horas: ${recent.length} interacción(es), Señor. Las más recientes:`,
+      data: formatted,
+      total: recent.length
+    };
+  }
+
+  /**
+   * 📤 COMANDO: "exportar memoria"
+   * Exporta toda la memoria a JSON
+   */
+  async exportMemory(format = 'json') {
+    await this.initialize();
+
+    const stats = await this.memory.getMemoryStats();
+    const conversations = await this.memory.memory.getRecentConversations(1000);
+    const prefs = await this.memory.memory.getAllPreferences();
+    const patterns = await this.memory.memory.getLearnedPatterns();
+
+    const exportData = {
+      exported_at: new Date().toISOString(),
+      stats,
+      conversations,
+      preferences: prefs,
+      patterns
+    };
+
+    // Crear directorio exports si no existe
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const exportsDir = path.join(process.cwd(), 'exports');
+
+    try {
+      await fs.access(exportsDir);
+    } catch {
+      await fs.mkdir(exportsDir, { recursive: true });
+    }
+
+    const filename = `memory-export-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    const filePath = path.join(exportsDir, filename);
+
+    await fs.writeFile(filePath, JSON.stringify(exportData, null, 2));
+
+    return {
+      success: true,
+      message: `📤 Memoria exportada a: ${filename}, Señor`,
+      data: {
+        file: filePath,
+        size: `${(JSON.stringify(exportData).length / 1024).toFixed(2)} KB`,
+        items: {
+          conversations: conversations.length,
+          preferences: prefs.length,
+          patterns: patterns.length
+        }
+      }
+    };
+  }
+
+  // ========================================
+  // MÉTODOS AUXILIARES
+  // ========================================
+
+  /**
+   * Extraer tags de un texto
+   */
+  extractTags(texto) {
+    const tags = [];
+    const lower = texto.toLowerCase();
+
+    // Tecnologías
+    const techs = ['node', 'python', 'react', 'vue', 'php', 'java', 'javascript', 'typescript'];
+    techs.forEach(tech => {
+      if (lower.includes(tech)) tags.push(tech);
+    });
+
+    // Categorías
+    if (lower.includes('bug') || lower.includes('error')) tags.push('problem');
+    if (lower.includes('idea') || lower.includes('sugerencia')) tags.push('idea');
+    if (lower.includes('importante')) tags.push('important');
+
+    return tags.length > 0 ? tags : ['general'];
+  }
+
+  /**
+   * Parsear fecha natural
+   */
+  parseNaturalDate(fechaStr) {
+    const lower = fechaStr.toLowerCase().trim();
+    const now = new Date();
+
+    if (lower === 'hoy' || lower === 'today') {
+      return now.toISOString().split('T')[0];
+    }
+
+    if (lower === 'ayer' || lower === 'yesterday') {
+      const yesterday = new Date(now - 24 * 60 * 60 * 1000);
+      return yesterday.toISOString().split('T')[0];
+    }
+
+    // Formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+      return fechaStr;
+    }
+
+    // Formato DD/MM/YYYY
+    const match = fechaStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+      const [, day, month, year] = match;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Calcular "hace cuánto tiempo"
+   */
+  timeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+
+    if (seconds < 60) return `hace ${seconds}s`;
+    if (seconds < 3600) return `hace ${Math.floor(seconds / 60)}min`;
+    if (seconds < 86400) return `hace ${Math.floor(seconds / 3600)}h`;
+    return `hace ${Math.floor(seconds / 86400)}d`;
+  }
+}
+
+export default MemoryCommands;
