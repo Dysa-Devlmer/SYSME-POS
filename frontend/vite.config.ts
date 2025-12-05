@@ -118,13 +118,13 @@ export default defineConfig(({ command, mode }) => {
       strictPort: true, // Fallar si el puerto está ocupado
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:47851', // Backend en puerto seguro
+          target: 'http://127.0.0.1:3001', // Backend en puerto 3001
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, '/api'),
         },
         '/uploads': {
-          target: 'http://127.0.0.1:47851',
+          target: 'http://127.0.0.1:3001',
           changeOrigin: true,
           secure: false,
         },
@@ -137,12 +137,12 @@ export default defineConfig(({ command, mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:47851',
+          target: 'http://127.0.0.1:3001',
           changeOrigin: true,
           secure: false,
         },
         '/uploads': {
-          target: 'http://127.0.0.1:47851',
+          target: 'http://127.0.0.1:3001',
           changeOrigin: true,
           secure: false,
         },
