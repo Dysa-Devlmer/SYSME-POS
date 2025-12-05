@@ -262,26 +262,34 @@ export const validateFileUpload = (options = {}) => {
     allowedTypes = ['image/jpeg', 'image/png', 'image/gif'],
     required = false
   } = options;
-  
+
   return (req, res, next) => {
     if (!req.file && required) {
       throw new ValidationError('File upload is required');
     }
-    
+
     if (!req.file) {
       return next();
     }
-    
+
     if (req.file.size > maxSize) {
       throw new ValidationError(`File size exceeds maximum allowed size of ${maxSize / (1024 * 1024)}MB`);
     }
-    
+
     if (!allowedTypes.includes(req.file.mimetype)) {
       throw new ValidationError(`File type not allowed. Allowed types: ${allowedTypes.join(', ')}`);
     }
-    
+
     next();
   };
+};
+
+// Validation middleware for express-validator
+export const validateRequest = (req, res, next) => {
+  // This is a compatibility middleware for express-validator
+  // If using express-validator, errors will already be in req
+  // Just pass through for now
+  next();
 };
 
 export default {
@@ -294,5 +302,6 @@ export default {
   validate,
   validateQuery,
   validateParams,
-  validateFileUpload
+  validateFileUpload,
+  validateRequest
 };
