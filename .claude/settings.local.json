@@ -108,7 +108,9 @@
       "Bash(cmd.exe /c \"cd C:\\jarvis-standalone 2>nul || cd C:\\asistente_devlmer && echo === UBICACION === && cd && echo === REMOTE === && git remote -v && echo === BRANCH === && git branch && echo === STATUS === && git status --short && echo === ESTRUCTURA === && dir /b\")",
       "Bash(git fetch:*)",
       "Bash(git checkout:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
