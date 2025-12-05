@@ -95,7 +95,20 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInVzZXJuYW1lIjoiY2FybG9zX2NhbWFyZXJvIiwiZW1haWwiOiJjYXJsb3NAcmVzdGF1cmFudC5sb2NhbCIsInJvbGUiOiJ3YWl0ZXIiLCJpYXQiOjE3NjE1MjQ2MzgsImV4cCI6MTc2MTYxMTAzOH0.Fnq8r2hcAHSBH0b735oMXPkqUa8xSbSOblLunu3RPyM\")",
       "Bash(cmd.exe /c \"taskkill /F /PID 10320\")",
       "Bash(cmd.exe /c \"taskkill /F /PID 33452\")",
-      "Bash(cmd.exe /c \"E:\\POS SYSME\\SYSME\\restart-backend-updated.bat\")"
+      "Bash(cmd.exe /c \"E:\\POS SYSME\\SYSME\\restart-backend-updated.bat\")",
+      "Bash(cmd.exe /c \"cd C:\\ && ren jarvis-standalone asistente_devlmer\")",
+      "Bash(git remote:*)",
+      "Bash(git stash:*)",
+      "Bash(git pull:*)",
+      "Bash(cmd.exe /c \"ren jarvis-standalone asistente_devlmer && echo SUCCESS || echo FAILED\")",
+      "Bash(powershell.exe -Command \"Rename-Item -Path ''C:\\jarvis-standalone'' -NewName ''asistente_devlmer'' -ErrorAction Stop; if ($?) { Write-Output ''SUCCESS'' } else { Write-Output ''FAILED'' }\")",
+      "Bash(powershell.exe -Command \"Rename-Item ''C:\\jarvis-standalone'' ''asistente_devlmer''\")",
+      "Bash(cmd.exe /c \"dir C:\\ | findstr /i jarvis\")",
+      "Bash(test:*)",
+      "Bash(cmd.exe /c \"cd C:\\jarvis-standalone 2>nul || cd C:\\asistente_devlmer && echo === UBICACION === && cd && echo === REMOTE === && git remote -v && echo === BRANCH === && git branch && echo === STATUS === && git status --short && echo === ESTRUCTURA === && dir /b\")",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
