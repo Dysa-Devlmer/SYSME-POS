@@ -5,13 +5,14 @@
 
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { dbService } from '../../config/database.js';
 import { redisService } from '../../config/redis.js';
 import { logger, logAuditEvent, logSecurityEvent } from '../../config/logger.js';
-import { 
-  generateToken, 
-  generateRefreshToken, 
-  blacklistToken 
+import {
+  generateToken,
+  generateRefreshToken,
+  blacklistToken
 } from '../../middleware/auth.js';
 import {
   AppError,
