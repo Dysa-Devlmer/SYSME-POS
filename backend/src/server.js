@@ -47,6 +47,7 @@ import pricingTiersRoutes from './modules/pricing-tiers/routes.js';
 import tipsRoutes from './modules/tips/routes.js';
 import reservationsRoutes from './modules/reservations/routes.js';
 import suppliersRoutes from './modules/suppliers/routes.js';
+import analyticsRoutes from './modules/analytics/routes.js';
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // import aiRoutes from './modules/ai/routes.js';
 
@@ -167,6 +168,7 @@ apiRouter.use('/pricing-tiers', authenticate, pricingTiersRoutes);
 apiRouter.use('/tips', authenticate, tipsRoutes);
 apiRouter.use('/reservations', authenticate, reservationsRoutes);
 apiRouter.use('/suppliers', authenticate, suppliersRoutes);
+apiRouter.use('/analytics', analyticsRoutes); // Has own auth middleware
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // apiRouter.use('/ai', authenticate, aiRoutes);
 
