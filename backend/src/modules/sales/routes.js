@@ -13,29 +13,24 @@ import {
   getSalesByDate,
   getDailySalesReport,
   transferTable,
-  splitSale,
-  parkSale,
-  getParkedSales,
-  resumeSale
+  splitSale
 } from './controller.js';
 import { printKitchenTicket, printReceiptTicket, getPrinterStatus, testPrinter } from './printerService.js';
+import parkedRoutes from './parkedRoutes.js';
 
 const router = express.Router();
+
+// Mount parked sales routes
+router.use('/parked', parkedRoutes);
 
 // Sales routes
 router.get('/', getSales);
 router.get('/daily-report', getDailySalesReport);
 router.get('/by-date/:date', getSalesByDate);
-router.get('/parked', getParkedSales); // Get all parked sales
-router.get('/:id', getSale);
-router.post('/', createSale);
-router.post('/process', processSale); // Main POS sale processing
+router.post('/', processSale); // Main POS sale processing
+router.post('/process', processSale); // Alias for compatibility
 router.post('/transfer-table', transferTable); // Transfer sale to different table
 router.post('/split', splitSale); // Split bill/account
-router.post('/park', parkSale); // Park/hold sale for later
-router.post('/resume/:sale_id', resumeSale); // Resume parked sale
-router.put('/:id', updateSale);
-router.delete('/:id', deleteSale);
 
 // Printer routes
 router.post('/:id/print-kitchen', async (req, res) => {
@@ -274,5 +269,10 @@ router.post('/printer/test/:type', async (req, res) => {
     });
   }
 });
+
+// Individual sale routes (must be at the end to avoid conflicts with specific paths)
+router.get('/:id', getSale);
+router.put('/:id', updateSale);
+router.delete('/:id', deleteSale);
 
 export default router;
