@@ -61,7 +61,7 @@ export const updateSettings = async (req, res) => {
     const updates = req.body;
 
     // Update settings
-    await dbService.update('reservation_settings', { id: 1 }, updates);
+    await dbService.update('reservation_settings', 1, updates);
 
     // Fetch updated settings
     const settings = await dbService.findOne('reservation_settings', { id: 1 });
@@ -302,7 +302,7 @@ export const updateReservation = async (req, res) => {
     }
 
     // Update reservation
-    await dbService.update('reservations', { id }, updates);
+    await dbService.update('reservations', id, updates);
 
     // Create history entry
     await dbService.create('reservation_history', {
@@ -342,7 +342,7 @@ export const confirmReservation = async (req, res) => {
       });
     }
 
-    await dbService.update('reservations', { id }, {
+    await dbService.update('reservations', id, {
       status: 'confirmed',
       confirmed_by: req.user?.id,
       confirmation_sent: true,
@@ -378,7 +378,7 @@ export const cancelReservation = async (req, res) => {
       });
     }
 
-    await dbService.update('reservations', { id }, {
+    await dbService.update('reservations', id, {
       status: 'cancelled',
       cancelled_at: new Date().toISOString(),
       cancellation_reason: reason || 'No reason provided'
@@ -412,7 +412,7 @@ export const markAsSeated = async (req, res) => {
       });
     }
 
-    await dbService.update('reservations', { id }, {
+    await dbService.update('reservations', id, {
       status: 'seated',
       seated_at: new Date().toISOString()
     });
@@ -437,7 +437,7 @@ export const markAsCompleted = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await dbService.update('reservations', { id }, {
+    await dbService.update('reservations', id, {
       status: 'completed',
       completed_at: new Date().toISOString()
     });
@@ -462,7 +462,7 @@ export const markAsNoShow = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await dbService.update('reservations', { id }, {
+    await dbService.update('reservations', id, {
       status: 'no_show'
     });
 
