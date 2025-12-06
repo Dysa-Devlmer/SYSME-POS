@@ -21,6 +21,10 @@ export const getSalesReport = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1); // Include end date
 
+    // Convert dates to Unix timestamps (milliseconds)
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     // Get sales summary
     const summary = await dbService.raw(
       `SELECT
@@ -33,17 +37,17 @@ export const getSalesReport = async (req, res) => {
         MAX(total) as max_sale
        FROM sales
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     // Get sales by date grouping
     let groupByClause;
     if (group_by === 'hour') {
-      groupByClause = "strftime('%Y-%m-%d %H:00:00', created_at)";
+      groupByClause = "strftime('%Y-%m-%d %H:00:00', datetime(created_at/1000, 'unixepoch'))";
     } else if (group_by === 'month') {
-      groupByClause = "strftime('%Y-%m', created_at)";
+      groupByClause = "strftime('%Y-%m', datetime(created_at/1000, 'unixepoch'))";
     } else {
-      groupByClause = "DATE(created_at)";
+      groupByClause = "DATE(datetime(created_at/1000, 'unixepoch'))";
     }
 
     const salesByPeriod = await dbService.raw(
@@ -56,7 +60,7 @@ export const getSalesReport = async (req, res) => {
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'
        GROUP BY period
        ORDER BY period ASC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
@@ -167,6 +171,9 @@ export const getProductPerformance = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const productPerformance = await dbService.raw(
       `SELECT
         p.id,
@@ -183,7 +190,7 @@ export const getProductPerformance = async (req, res) => {
        GROUP BY p.id, p.name, p.sku
        ORDER BY total_revenue DESC
        LIMIT ?`,
-      [startDate.toISOString(), endDate.toISOString(), parseInt(limit)]
+      [startTimestamp, endTimestamp, parseInt(limit)]
     );
 
     res.json({
@@ -215,6 +222,9 @@ export const getCategoryPerformance = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const categoryPerformance = await dbService.raw(
       `SELECT
         c.id,
@@ -230,7 +240,7 @@ export const getCategoryPerformance = async (req, res) => {
        WHERE s.created_at >= ? AND s.created_at < ? AND s.status = 'completed'
        GROUP BY c.id, c.name
        ORDER BY total_revenue DESC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
@@ -262,6 +272,9 @@ export const getPaymentMethodsReport = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const paymentMethods = await dbService.raw(
       `SELECT
         payment_method,
@@ -274,7 +287,7 @@ export const getPaymentMethodsReport = async (req, res) => {
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'
        GROUP BY payment_method
        ORDER BY total_amount DESC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
@@ -306,9 +319,12 @@ export const getHourlySalesReport = async (req, res) => {
     const endDate = new Date(date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const hourlySales = await dbService.raw(
       `SELECT
-        strftime('%H', created_at) as hour,
+        strftime('%H', datetime(created_at/1000, 'unixepoch')) as hour,
         COUNT(*) as sales_count,
         SUM(total) as revenue,
         AVG(total) as average_sale
@@ -316,7 +332,7 @@ export const getHourlySalesReport = async (req, res) => {
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'
        GROUP BY hour
        ORDER BY hour ASC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     // Fill in missing hours with zeros
@@ -431,6 +447,9 @@ export const getWaiterPerformance = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const waiterPerformance = await dbService.raw(
       `SELECT
         u.id,
@@ -446,7 +465,7 @@ export const getWaiterPerformance = async (req, res) => {
        WHERE s.created_at >= ? AND s.created_at < ? AND s.status = 'completed'
        GROUP BY u.id, u.username
        ORDER BY total_revenue DESC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
