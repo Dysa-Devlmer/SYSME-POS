@@ -354,23 +354,23 @@ export const getCashSessionsReport = async (req, res) => {
     let query = `
       SELECT
         cs.id,
+        cs.session_number,
         cs.user_id,
         u.username,
         cs.opened_at,
         cs.closed_at,
-        cs.opening_amount,
-        cs.closing_amount,
-        cs.expected_amount,
-        cs.actual_amount,
+        cs.opening_balance,
+        cs.closing_balance,
+        cs.expected_balance,
         cs.difference,
+        cs.total_sales,
+        cs.total_cash,
+        cs.total_card,
+        cs.sales_count,
         cs.notes,
-        cs.status,
-        COUNT(DISTINCT s.id) as total_sales,
-        COALESCE(SUM(s.total), 0) as sales_total
+        cs.status
       FROM cash_sessions cs
       LEFT JOIN users u ON cs.user_id = u.id
-      LEFT JOIN sales s ON s.created_at BETWEEN cs.opened_at AND COALESCE(cs.closed_at, datetime('now'))
-        AND s.status = 'completed'
     `;
 
     const params = [];
@@ -384,7 +384,7 @@ export const getCashSessionsReport = async (req, res) => {
       params.push(startDate.toISOString(), endDate.toISOString());
     }
 
-    query += ` GROUP BY cs.id ORDER BY cs.opened_at DESC`;
+    query += ` ORDER BY cs.opened_at DESC`;
 
     const sessions = await dbService.raw(query, params);
 
@@ -393,9 +393,9 @@ export const getCashSessionsReport = async (req, res) => {
       total_sessions: sessions.length,
       open_sessions: sessions.filter(s => s.status === 'open').length,
       closed_sessions: sessions.filter(s => s.status === 'closed').length,
-      total_opening_amount: sessions.reduce((sum, s) => sum + (s.opening_amount || 0), 0),
-      total_closing_amount: sessions.reduce((sum, s) => sum + (s.closing_amount || 0), 0),
-      total_sales: sessions.reduce((sum, s) => sum + (s.sales_total || 0), 0),
+      total_opening: sessions.reduce((sum, s) => sum + (s.opening_balance || 0), 0),
+      total_closing: sessions.reduce((sum, s) => sum + (s.closing_balance || 0), 0),
+      total_sales: sessions.reduce((sum, s) => sum + (s.total_sales || 0), 0),
       total_difference: sessions.reduce((sum, s) => sum + (s.difference || 0), 0)
     };
 
@@ -435,17 +435,16 @@ export const getWaiterPerformance = async (req, res) => {
       `SELECT
         u.id,
         u.username,
-        u.full_name,
+        u.first_name || ' ' || u.last_name as full_name,
         COUNT(DISTINCT s.id) as total_sales,
         SUM(s.total) as total_revenue,
         AVG(s.total) as average_sale,
-        COALESCE(SUM(st.tip_amount), 0) as total_tips,
-        COALESCE(AVG(st.tip_amount), 0) as average_tip
+        COALESCE(SUM(s.tip_amount), 0) as total_tips,
+        COALESCE(AVG(s.tip_amount), 0) as average_tip
        FROM users u
        INNER JOIN sales s ON s.waiter_id = u.id
-       LEFT JOIN sale_tips st ON st.sale_id = s.id
        WHERE s.created_at >= ? AND s.created_at < ? AND s.status = 'completed'
-       GROUP BY u.id, u.username, u.full_name
+       GROUP BY u.id, u.username
        ORDER BY total_revenue DESC`,
       [startDate.toISOString(), endDate.toISOString()]
     );
