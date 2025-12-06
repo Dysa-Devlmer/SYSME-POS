@@ -28,8 +28,8 @@ router.get('/daily-report', getDailySalesReport);
 router.get('/by-date/:date', getSalesByDate);
 router.get('/parked', getParkedSales); // Get all parked sales
 router.get('/:id', getSale);
-router.post('/', createSale);
-router.post('/process', processSale); // Main POS sale processing
+router.post('/', processSale); // Main POS sale processing - changed from createSale
+router.post('/process', processSale); // Alias for compatibility
 router.post('/transfer-table', transferTable); // Transfer sale to different table
 router.post('/split', splitSale); // Split bill/account
 router.post('/park', parkSale); // Park/hold sale for later
