@@ -293,9 +293,24 @@ async function getUserPermissions(userId) {
     let permissionList = [];
 
     try {
-      // Try modern schema first (users table with JSON permissions)
+      // Try role-based permissions first (new system)
       const user = await dbService.findById('users', userId);
-      if (user && user.permissions) {
+      if (user && user.role) {
+        const rolePermissions = await dbService.raw(`
+          SELECT DISTINCT p.name as permission
+          FROM roles r
+          JOIN role_permissions rp ON r.id = rp.role_id
+          JOIN permissions p ON rp.permission_id = p.id
+          WHERE r.name = ?
+        `, [user.role]);
+
+        if (rolePermissions && rolePermissions.length > 0) {
+          permissionList = rolePermissions.map(row => row.permission);
+        }
+      }
+
+      // Fallback: Try modern schema (users table with JSON permissions)
+      if (permissionList.length === 0 && user && user.permissions) {
         const permissions = typeof user.permissions === 'string'
           ? JSON.parse(user.permissions)
           : user.permissions;

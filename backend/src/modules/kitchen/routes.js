@@ -34,21 +34,21 @@ router.use(authenticate);
 
 // GET /kitchen/orders - Get active kitchen orders
 router.get('/orders',
-  requirePermission('kitchen.read'),
+  requirePermission('kitchen.view_orders'),
   validateQuery(Joi.object(querySchema)),
   asyncHandler(kitchenController.getKitchenOrders)
 );
 
 // GET /kitchen/orders/:id - Get specific order details for kitchen
 router.get('/orders/:id',
-  requirePermission('kitchen.read'),
+  requirePermission('kitchen.view_orders'),
   validateParams(Joi.object({ id: paramsSchema.id })),
   asyncHandler(kitchenController.getKitchenOrderDetails)
 );
 
 // PATCH /kitchen/orders/:id/status - Update kitchen status
 router.patch('/orders/:id/status',
-  requirePermission('kitchen.update'),
+  requirePermission('kitchen.update_status'),
   validateParams(Joi.object({ id: paramsSchema.id })),
   validate(kitchenSchema.updateStatus),
   asyncHandler(kitchenController.updateKitchenStatus)
@@ -56,14 +56,14 @@ router.patch('/orders/:id/status',
 
 // POST /kitchen/orders/:id/print - Mark order as printed
 router.post('/orders/:id/print',
-  requirePermission('kitchen.update'),
+  requirePermission('kitchen.update_status'),
   validateParams(Joi.object({ id: paramsSchema.id })),
   asyncHandler(kitchenController.markOrderPrinted)
 );
 
 // GET /kitchen/stats - Get kitchen statistics
 router.get('/stats',
-  requirePermission('kitchen.read'),
+  requirePermission('kitchen.view_orders'),
   asyncHandler(kitchenController.getKitchenStats)
 );
 
