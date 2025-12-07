@@ -114,7 +114,9 @@
       "Bash(git restore:*)",
       "Bash(git cherry:*)",
       "Bash(git merge:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(PORT=47851 npm run dev:*)",
+      "Bash(timeout 10 bash -c:*)"
     ],
     "deny": [],
     "ask": []

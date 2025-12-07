@@ -119,7 +119,6 @@ class AnalyticsController {
       });
     }
   }
-};
 
   /**
    * Obtiene métricas de clientes
@@ -158,7 +157,6 @@ class AnalyticsController {
       });
     }
   }
-};
 
   /**
    * Obtiene métricas de rendimiento del sistema
