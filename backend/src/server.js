@@ -51,6 +51,7 @@ import customersRoutes from './modules/customers/routes.js';
 import analyticsRoutes from './modules/analytics/routes.js';
 import promotionsRoutes from './modules/promotions/routes.js';
 import loyaltyRoutes from './modules/loyalty/routes.js';
+import kdsRoutes from './modules/kds/routes.js';
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // import aiRoutes from './modules/ai/routes.js';
 
@@ -175,6 +176,7 @@ apiRouter.use('/customers', authenticate, customersRoutes);
 apiRouter.use('/analytics', authenticate, analyticsRoutes);
 apiRouter.use('/promotions', authenticate, promotionsRoutes);
 apiRouter.use('/loyalty', loyaltyRoutes); // Loyalty has mixed auth (some public endpoints)
+apiRouter.use('/kds', kdsRoutes); // Kitchen Display System
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // apiRouter.use('/ai', authenticate, aiRoutes);
 
