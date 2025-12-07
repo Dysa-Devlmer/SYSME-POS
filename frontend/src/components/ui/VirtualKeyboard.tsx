@@ -1,252 +1,298 @@
 /**
- * Virtual Keyboard Component
- * On-screen keyboard for tablets and touch devices
+ * VirtualKeyboard Component
+ * Teclado virtual táctil para uso en tablets y pantallas touch
+ * Soporta modo numérico y alfanumérico completo
  */
 
 import React, { useState, useCallback } from 'react';
-import { Delete, Check, X } from 'lucide-react';
-
-/**
- * Safe calculator function - replaces eval() for security
- */
-const safeCalculate = (expression: string): string => {
-  try {
-    const sanitized = expression.replace(/\s/g, '');
-    if (!/^[\d+\-*/().]+$/.test(sanitized)) {
-      return 'Error';
-    }
-    if (/[+\-*/]{2,}/.test(sanitized)) {
-      return 'Error';
-    }
-    const result = new Function(`"use strict"; return (${sanitized})`)();
-    if (typeof result !== 'number' || !isFinite(result)) {
-      return 'Error';
-    }
-    return String(Math.round(result * 100) / 100);
-  } catch {
-    return 'Error';
-  }
-};
 
 interface VirtualKeyboardProps {
-  onInput: (value: string) => void;
+  onKeyPress: (key: string) => void;
   onEnter?: () => void;
-  onCancel?: () => void;
-  initialValue?: string;
-  mode?: 'numeric' | 'full' | 'calculator';
-  showDecimal?: boolean;
-  maxLength?: number;
-  title?: string;
+  onClose?: () => void;
+  mode?: 'numeric' | 'alphanumeric' | 'full';
+  visible?: boolean;
+  className?: string;
 }
 
 export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
-  onInput,
+  onKeyPress,
   onEnter,
-  onCancel,
-  initialValue = '',
-  mode = 'numeric',
-  showDecimal = true,
-  maxLength = 10,
-  title = 'Ingrese valor'
+  onClose,
+  mode = 'alphanumeric',
+  visible = true,
+  className = ''
 }) => {
-  const [value, setValue] = useState(initialValue);
-  const [display, setDisplay] = useState(initialValue);
+  const [isShift, setIsShift] = useState(false);
+  const [isCapsLock, setIsCapsLock] = useState(false);
 
-  const handleButtonClick = (btn: string) => {
-    let newValue = value;
-
-    switch (btn) {
-      case 'C':
-        newValue = '';
-        break;
-      case 'DEL':
-        newValue = value.slice(0, -1);
-        break;
-      case '.':
-        if (showDecimal && !value.includes('.')) {
-          newValue = value + '.';
-        }
-        break;
-      case '+':
-      case '-':
-      case '*':
-      case '/':
-        if (mode === 'calculator') {
-          newValue = value + ' ' + btn + ' ';
-        }
-        break;
-      case '=':
-        if (mode === 'calculator') {
-          newValue = safeCalculate(value);
-        }
-        break;
-      default:
-        if (value.length < maxLength) {
-          newValue = value + btn;
-        }
+  const handleKeyPress = useCallback((key: string) => {
+    if (key === 'SHIFT') {
+      setIsShift(!isShift);
+      return;
+    }
+    if (key === 'CAPS') {
+      setIsCapsLock(!isCapsLock);
+      setIsShift(false);
+      return;
+    }
+    if (key === 'ENTER') {
+      onEnter?.();
+      return;
+    }
+    if (key === 'BACKSPACE') {
+      onKeyPress('BACKSPACE');
+      return;
+    }
+    if (key === 'SPACE') {
+      onKeyPress(' ');
+      return;
+    }
+    if (key === 'CLEAR') {
+      onKeyPress('CLEAR');
+      return;
     }
 
-    setValue(newValue);
-    setDisplay(newValue);
-    onInput(newValue);
-  };
-
-  const handleEnter = () => {
-    if (onEnter) {
-      onEnter();
+    // Apply shift/caps
+    let finalKey = key;
+    if (isShift || isCapsLock) {
+      finalKey = key.toUpperCase();
+      if (isShift) setIsShift(false);
     }
-  };
 
-  const handleCancel = () => {
-    setValue('');
-    setDisplay('');
-    if (onCancel) {
-      onCancel();
-    }
-  };
+    onKeyPress(finalKey);
+  }, [isShift, isCapsLock, onKeyPress, onEnter]);
 
-  const numericButtons = [
+  if (!visible) return null;
+
+  // Numeric keyboard layout
+  const numericKeys = [
     ['7', '8', '9'],
     ['4', '5', '6'],
     ['1', '2', '3'],
-    ['0', showDecimal ? '.' : '', 'C']
+    [',', '0', 'BACKSPACE']
   ];
 
-  const calculatorButtons = [
-    ['7', '8', '9', '/'],
-    ['4', '5', '6', '*'],
-    ['1', '2', '3', '-'],
-    ['0', '.', 'C', '+']
+  // Alphanumeric keyboard layout (QWERTY)
+  const alphanumericRows = [
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'BACKSPACE'],
+    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ñ'],
+    ['SHIFT', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '.', 'ENTER'],
+    ['CLEAR', 'SPACE']
   ];
 
-  const fullKeyboardButtons = [
-    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DEL']
-  ];
-
-  const getButtons = () => {
-    switch (mode) {
-      case 'calculator':
-        return calculatorButtons;
-      case 'full':
-        return fullKeyboardButtons;
+  const getKeyDisplay = (key: string): string => {
+    switch (key) {
+      case 'BACKSPACE': return '⌫';
+      case 'ENTER': return '↵ Enter';
+      case 'SHIFT': return '⇧ Shift';
+      case 'CAPS': return '⇪ Caps';
+      case 'SPACE': return 'Espacio';
+      case 'CLEAR': return 'Limpiar';
       default:
-        return numericButtons;
+        if ((isShift || isCapsLock) && key.length === 1) {
+          return key.toUpperCase();
+        }
+        return key;
     }
   };
 
-  const buttons = getButtons();
+  const getKeyWidth = (key: string): string => {
+    switch (key) {
+      case 'BACKSPACE': return 'w-20';
+      case 'ENTER': return 'w-24';
+      case 'SHIFT': return 'w-20';
+      case 'SPACE': return 'flex-1';
+      case 'CLEAR': return 'w-24';
+      default: return 'w-12';
+    }
+  };
+
+  const getKeyStyle = (key: string): string => {
+    const base = 'h-12 rounded-lg font-medium text-lg transition-all active:scale-95 flex items-center justify-center';
+
+    if (key === 'ENTER') {
+      return `${base} bg-green-500 hover:bg-green-600 text-white`;
+    }
+    if (key === 'BACKSPACE' || key === 'CLEAR') {
+      return `${base} bg-red-500 hover:bg-red-600 text-white`;
+    }
+    if (key === 'SHIFT') {
+      return `${base} ${isShift ? 'bg-blue-500 text-white' : 'bg-gray-300 hover:bg-gray-400 text-gray-800'}`;
+    }
+    if (key === 'SPACE') {
+      return `${base} bg-gray-200 hover:bg-gray-300 text-gray-800`;
+    }
+
+    return `${base} bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300`;
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md">
-      {/* Title */}
-      {title && (
-        <div className="text-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-700">{title}</h3>
+    <div className={`bg-gray-800 p-4 rounded-t-xl shadow-2xl ${className}`}>
+      {/* Close button */}
+      {onClose && (
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-xl px-3 py-1"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Display */}
-      <div className="bg-gray-100 rounded-lg p-4 mb-4 border-2 border-gray-300">
-        <div className="text-right text-3xl font-bold text-gray-800 min-h-[50px] flex items-center justify-end">
-          {display || '0'}
+      {mode === 'numeric' ? (
+        // Numeric Keyboard
+        <div className="flex flex-col gap-2">
+          {numericKeys.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex gap-2 justify-center">
+              {row.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => handleKeyPress(key)}
+                  className={`${getKeyStyle(key)} w-16 h-14 text-2xl`}
+                >
+                  {getKeyDisplay(key)}
+                </button>
+              ))}
+            </div>
+          ))}
+          <div className="flex gap-2 justify-center mt-2">
+            <button
+              onClick={() => handleKeyPress('CLEAR')}
+              className="bg-red-500 hover:bg-red-600 text-white w-24 h-12 rounded-lg text-lg font-medium"
+            >
+              Limpiar
+            </button>
+            <button
+              onClick={() => onEnter?.()}
+              className="bg-green-500 hover:bg-green-600 text-white flex-1 h-12 rounded-lg text-lg font-medium"
+            >
+              ↵ Aceptar
+            </button>
+          </div>
         </div>
+      ) : (
+        // Alphanumeric Keyboard
+        <div className="flex flex-col gap-2">
+          {alphanumericRows.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex gap-1.5 justify-center">
+              {row.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => handleKeyPress(key)}
+                  className={`${getKeyStyle(key)} ${getKeyWidth(key)}`}
+                >
+                  {getKeyDisplay(key)}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * NumericKeypad Component
+ * Teclado numérico simple para cantidades y precios
+ */
+interface NumericKeypadProps {
+  value: string;
+  onChange: (value: string) => void;
+  onAccept?: () => void;
+  onCancel?: () => void;
+  maxLength?: number;
+  allowDecimal?: boolean;
+  className?: string;
+}
+
+export const NumericKeypad: React.FC<NumericKeypadProps> = ({
+  value,
+  onChange,
+  onAccept,
+  onCancel,
+  maxLength = 10,
+  allowDecimal = true,
+  className = ''
+}) => {
+  const handleKeyPress = (key: string) => {
+    if (key === 'BACKSPACE') {
+      onChange(value.slice(0, -1));
+      return;
+    }
+    if (key === 'CLEAR') {
+      onChange('');
+      return;
+    }
+    if (key === ',' || key === '.') {
+      if (!allowDecimal || value.includes(',') || value.includes('.')) return;
+      onChange(value + ',');
+      return;
+    }
+    if (value.length < maxLength) {
+      onChange(value + key);
+    }
+  };
+
+  const keys = [
+    ['7', '8', '9'],
+    ['4', '5', '6'],
+    ['1', '2', '3'],
+    [allowDecimal ? ',' : '', '0', 'BACKSPACE']
+  ];
+
+  return (
+    <div className={`bg-white rounded-xl shadow-lg p-4 ${className}`}>
+      {/* Display */}
+      <div className="bg-blue-600 text-white text-4xl font-bold p-4 rounded-lg mb-4 text-right min-h-[60px]">
+        {value || '0'}
       </div>
 
-      {/* Keyboard */}
-      <div className="space-y-2">
-        {buttons.map((row, rowIndex) => (
-          <div key={rowIndex} className="grid gap-2" style={{
-            gridTemplateColumns: `repeat(${row.length}, 1fr)`
-          }}>
-            {row.map((btn, btnIndex) => {
-              if (!btn) return <div key={btnIndex} />;
-
-              const isOperator = ['+', '-', '*', '/', '='].includes(btn);
-              const isSpecial = ['C', 'DEL'].includes(btn);
-              const isEmpty = btn === '';
-
-              if (isEmpty) return <div key={btnIndex} />;
-
-              return (
+      {/* Keys */}
+      <div className="flex flex-col gap-2">
+        {keys.map((row, rowIndex) => (
+          <div key={rowIndex} className="flex gap-2 justify-center">
+            {row.map((key, keyIndex) => (
+              key ? (
                 <button
-                  key={btnIndex}
-                  onClick={() => handleButtonClick(btn)}
-                  className={`
-                    h-16 text-2xl font-bold rounded-lg shadow-md
-                    active:scale-95 transition-transform
-                    ${isOperator ? 'bg-blue-500 text-white hover:bg-blue-600' :
-                      isSpecial ? 'bg-red-500 text-white hover:bg-red-600' :
-                      'bg-white hover:bg-gray-100 text-gray-800'
-                    }
-                    ${btn === 'DEL' ? 'flex items-center justify-center' : ''}
-                  `}
+                  key={keyIndex}
+                  onClick={() => handleKeyPress(key)}
+                  className={`w-16 h-14 rounded-lg text-2xl font-bold transition-all active:scale-95 ${
+                    key === 'BACKSPACE'
+                      ? 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+                      : 'bg-blue-100 hover:bg-blue-200 text-blue-800'
+                  }`}
                 >
-                  {btn === 'DEL' ? <Delete className="w-6 h-6" /> : btn}
+                  {key === 'BACKSPACE' ? '⌫' : key}
                 </button>
-              );
-            })}
+              ) : <div key={keyIndex} className="w-16 h-14" />
+            ))}
           </div>
         ))}
 
-        {/* Function Row */}
-        {mode === 'calculator' && (
-          <div className="grid grid-cols-2 gap-2 mt-4">
+        {/* Action buttons */}
+        <div className="flex gap-2 mt-2">
+          {onCancel && (
             <button
-              onClick={() => handleButtonClick('=')}
-              className="h-16 bg-green-500 text-white text-xl font-bold rounded-lg hover:bg-green-600 shadow-md"
+              onClick={onCancel}
+              className="flex-1 h-14 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xl font-bold flex items-center justify-center gap-2"
             >
-              =
+              ✕ Cancelar
             </button>
+          )}
+          {onAccept && (
             <button
-              onClick={handleEnter}
-              className="h-16 bg-purple-500 text-white text-xl font-bold rounded-lg hover:bg-purple-600 shadow-md flex items-center justify-center gap-2"
+              onClick={onAccept}
+              className="flex-1 h-14 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xl font-bold flex items-center justify-center gap-2"
             >
-              <Check className="w-6 h-6" />
-              OK
+              ✓ Aceptar
             </button>
-          </div>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        {onCancel && (
-          <button
-            onClick={handleCancel}
-            className="h-14 bg-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-400 flex items-center justify-center gap-2"
-          >
-            <X className="w-5 h-5" />
-            Cancelar
-          </button>
-        )}
-        {onEnter && (
-          <button
-            onClick={handleEnter}
-            disabled={!value}
-            className={`
-              h-14 font-bold rounded-lg flex items-center justify-center gap-2
-              ${!value
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-green-500 text-white hover:bg-green-600'
-              }
-              ${onCancel ? '' : 'col-span-2'}
-            `}
-          >
-            <Check className="w-5 h-5" />
-            Aceptar
-          </button>
-        )}
-      </div>
-
-      {/* Help Text */}
-      {mode === 'calculator' && (
-        <div className="mt-4 text-center text-sm text-gray-500">
-          Presiona = para calcular o OK para confirmar
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

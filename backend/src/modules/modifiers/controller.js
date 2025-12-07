@@ -183,7 +183,7 @@ export const updateModifierGroup = async (req, res) => {
       });
     }
 
-    const updated = await dbService.update('modifier_groups', { id }, updates);
+    const updated = await dbService.update('modifier_groups', id, updates);
 
     logger.info(`Modifier group updated: ${id}`);
 
@@ -217,7 +217,7 @@ export const deleteModifierGroup = async (req, res) => {
     }
 
     // Soft delete
-    await dbService.update('modifier_groups', { id }, { is_active: 0 });
+    await dbService.update('modifier_groups', id, { is_active: 0 });
 
     // Also deactivate all modifiers in this group
     await dbService.query(
@@ -405,7 +405,7 @@ export const updateModifier = async (req, res) => {
       }
     }
 
-    const updated = await dbService.update('modifiers', { id }, updates);
+    const updated = await dbService.update('modifiers', id, updates);
 
     logger.info(`Modifier updated: ${id}`);
 
@@ -439,7 +439,7 @@ export const deleteModifier = async (req, res) => {
     }
 
     // Soft delete
-    await dbService.update('modifiers', { id }, { is_active: 0 });
+    await dbService.update('modifiers', id, { is_active: 0 });
 
     logger.info(`Modifier deactivated: ${id}`);
 

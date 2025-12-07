@@ -1,267 +1,289 @@
 /**
  * Excel Export Service
- * Export data to Excel files using XLSX library
+ * Servicio para exportar datos a formato Excel (.xlsx)
+ * Usa SheetJS (xlsx) para generar archivos Excel del lado del cliente
  */
 
-import * as XLSX from 'xlsx';
-
-export interface ExportColumn {
+export interface ExcelColumn {
+  header: string;
   key: string;
-  label: string;
   width?: number;
+  type?: 'string' | 'number' | 'date' | 'currency';
+  format?: string;
 }
 
-export interface ExportOptions {
+export interface ExcelExportOptions {
   filename: string;
   sheetName?: string;
-  columns: ExportColumn[];
+  columns: ExcelColumn[];
   data: any[];
-  includeFilters?: boolean;
-  filters?: Record<string, any>;
+  includeHeader?: boolean;
+  headerStyle?: {
+    bold?: boolean;
+    backgroundColor?: string;
+    textColor?: string;
+  };
+  autoFilter?: boolean;
+  freezeHeader?: boolean;
 }
 
-class ExcelExportService {
-  /**
-   * Export data to Excel file
-   */
-  exportToExcel(options: ExportOptions): void {
+/**
+ * Exportar datos a Excel
+ */
+export const exportToExcel = async (options: ExcelExportOptions): Promise<void> => {
+  try {
+    // Dynamic import para reducir bundle size
+    const XLSX = await import('xlsx');
+
     const {
       filename,
       sheetName = 'Datos',
       columns,
       data,
-      includeFilters = false,
-      filters = {}
+      includeHeader = true,
+      autoFilter = true,
+      freezeHeader = true
     } = options;
 
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-
-    // Prepare headers
-    const headers = columns.map(col => col.label);
-
-    // Prepare data rows
+    // Preparar datos para Excel
+    const headers = columns.map(col => col.header);
     const rows = data.map(item =>
       columns.map(col => {
         const value = item[col.key];
-        return this.formatCellValue(value);
+
+        // Formatear según tipo
+        if (col.type === 'currency' && typeof value === 'number') {
+          return value;
+        }
+        if (col.type === 'date' && value) {
+          return new Date(value);
+        }
+
+        return value ?? '';
       })
     );
 
-    // Combine headers and data
-    const worksheetData = [headers, ...rows];
-
-    // Add filters information if requested
-    if (includeFilters && Object.keys(filters).length > 0) {
-      const filterRows: string[][] = [];
-      filterRows.push(['FILTROS APLICADOS']);
-      Object.entries(filters).forEach(([key, value]) => {
-        filterRows.push([key, String(value)]);
-      });
-      filterRows.push([]); // Empty row
-      worksheetData.unshift(...filterRows);
-    }
-
-    // Create worksheet
+    // Crear worksheet
+    const worksheetData = includeHeader ? [headers, ...rows] : rows;
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-    // Set column widths
+    // Configurar anchos de columna
     const colWidths = columns.map(col => ({
-      wch: col.width || 15
+      wch: col.width || Math.max(col.header.length, 15)
     }));
     worksheet['!cols'] = colWidths;
 
-    // Add worksheet to workbook
+    // Aplicar auto-filtro
+    if (autoFilter && includeHeader) {
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      worksheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+    }
+
+    // Congelar encabezado
+    if (freezeHeader && includeHeader) {
+      worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+    }
+
+    // Crear workbook
+    const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
-    // Generate Excel file
-    XLSX.writeFile(workbook, `${filename}.xlsx`);
+    // Descargar archivo
+    const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+    XLSX.writeFile(workbook, finalFilename);
+
+  } catch (error) {
+    console.error('Error exporting to Excel:', error);
+    throw new Error('Error al exportar a Excel. Asegúrese de tener las dependencias instaladas.');
   }
+};
 
-  /**
-   * Export sales to Excel
-   */
-  exportSales(sales: any[], filters?: Record<string, any>): void {
-    this.exportToExcel({
-      filename: `ventas_${this.getTimestamp()}`,
-      sheetName: 'Ventas',
-      columns: [
-        { key: 'sale_number', label: 'N° Venta', width: 12 },
-        { key: 'date', label: 'Fecha', width: 12 },
-        { key: 'table_number', label: 'Mesa', width: 10 },
-        { key: 'customer_name', label: 'Cliente', width: 20 },
-        { key: 'waiter_name', label: 'Mesero', width: 18 },
-        { key: 'subtotal', label: 'Subtotal', width: 12 },
-        { key: 'tax_amount', label: 'IVA', width: 12 },
-        { key: 'total', label: 'Total', width: 12 },
-        { key: 'payment_method', label: 'Método Pago', width: 15 },
-        { key: 'status', label: 'Estado', width: 12 }
-      ],
-      data: sales,
-      includeFilters: true,
-      filters
-    });
-  }
+/**
+ * Exportar múltiples hojas a un solo archivo Excel
+ */
+export const exportMultiSheetExcel = async (
+  filename: string,
+  sheets: Array<{
+    name: string;
+    columns: ExcelColumn[];
+    data: any[];
+  }>
+): Promise<void> => {
+  try {
+    const XLSX = await import('xlsx');
 
-  /**
-   * Export products to Excel
-   */
-  exportProducts(products: any[]): void {
-    this.exportToExcel({
-      filename: `productos_${this.getTimestamp()}`,
-      sheetName: 'Productos',
-      columns: [
-        { key: 'sku', label: 'SKU', width: 12 },
-        { key: 'name', label: 'Nombre', width: 25 },
-        { key: 'category_name', label: 'Categoría', width: 15 },
-        { key: 'price', label: 'Precio', width: 12 },
-        { key: 'cost', label: 'Costo', width: 12 },
-        { key: 'stock_quantity', label: 'Stock', width: 10 },
-        { key: 'min_stock', label: 'Stock Mín', width: 10 },
-        { key: 'active', label: 'Activo', width: 8 }
-      ],
-      data: products
-    });
-  }
+    const workbook = XLSX.utils.book_new();
 
-  /**
-   * Export inventory to Excel
-   */
-  exportInventory(inventory: any[]): void {
-    this.exportToExcel({
-      filename: `inventario_${this.getTimestamp()}`,
-      sheetName: 'Inventario',
-      columns: [
-        { key: 'product_name', label: 'Producto', width: 25 },
-        { key: 'sku', label: 'SKU', width: 12 },
-        { key: 'warehouse_name', label: 'Bodega', width: 18 },
-        { key: 'quantity', label: 'Cantidad', width: 10 },
-        { key: 'unit_cost', label: 'Costo Unit.', width: 12 },
-        { key: 'total_value', label: 'Valor Total', width: 15 },
-        { key: 'last_updated', label: 'Última Act.', width: 15 }
-      ],
-      data: inventory
-    });
-  }
+    for (const sheet of sheets) {
+      const headers = sheet.columns.map(col => col.header);
+      const rows = sheet.data.map(item =>
+        sheet.columns.map(col => item[col.key] ?? '')
+      );
 
-  /**
-   * Export customers to Excel
-   */
-  exportCustomers(customers: any[]): void {
-    this.exportToExcel({
-      filename: `clientes_${this.getTimestamp()}`,
-      sheetName: 'Clientes',
-      columns: [
-        { key: 'customer_number', label: 'N° Cliente', width: 12 },
-        { key: 'name', label: 'Nombre', width: 25 },
-        { key: 'tax_id', label: 'RUT/DNI', width: 15 },
-        { key: 'email', label: 'Email', width: 25 },
-        { key: 'phone', label: 'Teléfono', width: 15 },
-        { key: 'address', label: 'Dirección', width: 30 },
-        { key: 'city', label: 'Ciudad', width: 15 },
-        { key: 'total_purchases', label: 'Compras Tot.', width: 12 },
-        { key: 'active', label: 'Activo', width: 8 }
-      ],
-      data: customers
-    });
-  }
+      const worksheetData = [headers, ...rows];
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-  /**
-   * Export cash sessions to Excel
-   */
-  exportCashSessions(sessions: any[]): void {
-    this.exportToExcel({
-      filename: `cierres_caja_${this.getTimestamp()}`,
-      sheetName: 'Cierres de Caja',
-      columns: [
-        { key: 'session_number', label: 'N° Sesión', width: 12 },
-        { key: 'opened_at', label: 'Apertura', width: 18 },
-        { key: 'closed_at', label: 'Cierre', width: 18 },
-        { key: 'user_name', label: 'Usuario', width: 18 },
-        { key: 'opening_amount', label: 'Monto Inicial', width: 15 },
-        { key: 'expected_amount', label: 'Esperado', width: 15 },
-        { key: 'actual_amount', label: 'Real', width: 15 },
-        { key: 'difference', label: 'Diferencia', width: 15 },
-        { key: 'total_sales', label: 'N° Ventas', width: 10 }
-      ],
-      data: sessions
-    });
-  }
+      // Configurar anchos
+      worksheet['!cols'] = sheet.columns.map(col => ({
+        wch: col.width || 15
+      }));
 
-  /**
-   * Export daily summary to Excel
-   */
-  exportDailySummary(summary: any): void {
-    const summaryData = [
-      { concepto: 'Ventas Totales', valor: summary.total_sales },
-      { concepto: 'Ventas en Efectivo', valor: summary.cash_sales },
-      { concepto: 'Ventas con Tarjeta', valor: summary.card_sales },
-      { concepto: 'Cantidad de Transacciones', valor: summary.transaction_count },
-      { concepto: 'Ticket Promedio', valor: summary.average_ticket },
-      { concepto: 'IVA Recaudado', valor: summary.total_tax },
-      { concepto: 'Descuentos Aplicados', valor: summary.total_discounts }
-    ];
-
-    this.exportToExcel({
-      filename: `resumen_diario_${this.getTimestamp()}`,
-      sheetName: 'Resumen Diario',
-      columns: [
-        { key: 'concepto', label: 'Concepto', width: 30 },
-        { key: 'valor', label: 'Valor', width: 20 }
-      ],
-      data: summaryData
-    });
-  }
-
-  /**
-   * Format cell value for Excel
-   */
-  private formatCellValue(value: any): any {
-    if (value === null || value === undefined) {
-      return '';
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
     }
 
-    if (typeof value === 'boolean') {
-      return value ? 'Sí' : 'No';
-    }
+    const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+    XLSX.writeFile(workbook, finalFilename);
 
-    if (value instanceof Date) {
-      return this.formatDate(value);
-    }
-
-    if (typeof value === 'number') {
-      return value;
-    }
-
-    return String(value);
+  } catch (error) {
+    console.error('Error exporting multi-sheet Excel:', error);
+    throw new Error('Error al exportar a Excel');
   }
+};
 
-  /**
-   * Format date for Excel
-   */
-  private formatDate(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+/**
+ * Exportar ventas a Excel
+ */
+export const exportSalesToExcel = async (
+  sales: any[],
+  dateRange: { start: string; end: string }
+): Promise<void> => {
+  const columns: ExcelColumn[] = [
+    { header: 'N° Venta', key: 'sale_number', width: 15 },
+    { header: 'Fecha', key: 'created_at', width: 20, type: 'date' },
+    { header: 'Mesa', key: 'table_number', width: 10 },
+    { header: 'Cliente', key: 'customer_name', width: 25 },
+    { header: 'Subtotal', key: 'subtotal', width: 15, type: 'currency' },
+    { header: 'IVA', key: 'tax_amount', width: 12, type: 'currency' },
+    { header: 'Descuento', key: 'discount_amount', width: 12, type: 'currency' },
+    { header: 'Total', key: 'total', width: 15, type: 'currency' },
+    { header: 'Método Pago', key: 'payment_method', width: 15 },
+    { header: 'Estado', key: 'status', width: 12 },
+    { header: 'Vendedor', key: 'user_name', width: 20 }
+  ];
 
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  }
+  await exportToExcel({
+    filename: `ventas_${dateRange.start}_${dateRange.end}`,
+    sheetName: 'Ventas',
+    columns,
+    data: sales
+  });
+};
 
-  /**
-   * Get current timestamp for filename
-   */
-  private getTimestamp(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
+/**
+ * Exportar inventario a Excel
+ */
+export const exportInventoryToExcel = async (products: any[]): Promise<void> => {
+  const columns: ExcelColumn[] = [
+    { header: 'SKU', key: 'sku', width: 15 },
+    { header: 'Código Barras', key: 'barcode', width: 18 },
+    { header: 'Producto', key: 'name', width: 35 },
+    { header: 'Categoría', key: 'category_name', width: 20 },
+    { header: 'Stock', key: 'stock', width: 10, type: 'number' },
+    { header: 'Stock Mínimo', key: 'min_stock', width: 12, type: 'number' },
+    { header: 'Costo', key: 'cost', width: 12, type: 'currency' },
+    { header: 'Precio', key: 'price', width: 12, type: 'currency' },
+    { header: 'Valor Stock', key: 'stock_value', width: 15, type: 'currency' },
+    { header: 'Estado', key: 'is_active', width: 10 }
+  ];
 
-    return `${year}${month}${day}_${hours}${minutes}`;
-  }
-}
+  // Calcular valor de stock
+  const dataWithValue = products.map(p => ({
+    ...p,
+    stock_value: (p.stock || 0) * (p.cost || 0),
+    is_active: p.is_active ? 'Activo' : 'Inactivo'
+  }));
 
-export default new ExcelExportService();
+  await exportToExcel({
+    filename: `inventario_${new Date().toISOString().split('T')[0]}`,
+    sheetName: 'Inventario',
+    columns,
+    data: dataWithValue
+  });
+};
+
+/**
+ * Exportar clientes a Excel
+ */
+export const exportCustomersToExcel = async (customers: any[]): Promise<void> => {
+  const columns: ExcelColumn[] = [
+    { header: 'RUT', key: 'rut', width: 15 },
+    { header: 'Nombre', key: 'name', width: 30 },
+    { header: 'Email', key: 'email', width: 30 },
+    { header: 'Teléfono', key: 'phone', width: 15 },
+    { header: 'Dirección', key: 'address', width: 40 },
+    { header: 'Ciudad', key: 'city', width: 20 },
+    { header: 'Total Compras', key: 'total_purchases', width: 15, type: 'currency' },
+    { header: 'Puntos', key: 'loyalty_points', width: 10, type: 'number' },
+    { header: 'Última Compra', key: 'last_purchase_date', width: 15, type: 'date' },
+    { header: 'Estado', key: 'is_active', width: 10 }
+  ];
+
+  const dataFormatted = customers.map(c => ({
+    ...c,
+    is_active: c.is_active ? 'Activo' : 'Inactivo'
+  }));
+
+  await exportToExcel({
+    filename: `clientes_${new Date().toISOString().split('T')[0]}`,
+    sheetName: 'Clientes',
+    columns,
+    data: dataFormatted
+  });
+};
+
+/**
+ * Exportar cierre de caja a Excel
+ */
+export const exportCashCloseToExcel = async (
+  sessionData: any,
+  movements: any[],
+  salesSummary: any
+): Promise<void> => {
+  const sheets = [
+    {
+      name: 'Resumen',
+      columns: [
+        { header: 'Concepto', key: 'concept', width: 30 },
+        { header: 'Valor', key: 'value', width: 20 }
+      ] as ExcelColumn[],
+      data: [
+        { concept: 'Cajero', value: sessionData.user_name },
+        { concept: 'Fecha Apertura', value: sessionData.opened_at },
+        { concept: 'Fecha Cierre', value: sessionData.closed_at },
+        { concept: 'Monto Inicial', value: sessionData.opening_amount },
+        { concept: 'Ventas Efectivo', value: salesSummary.cash_sales },
+        { concept: 'Ventas Tarjeta', value: salesSummary.card_sales },
+        { concept: 'Total Ventas', value: salesSummary.total_sales },
+        { concept: 'Ingresos', value: sessionData.total_income },
+        { concept: 'Egresos', value: sessionData.total_expense },
+        { concept: 'Monto Esperado', value: sessionData.expected_amount },
+        { concept: 'Monto Real', value: sessionData.actual_amount },
+        { concept: 'Diferencia', value: sessionData.difference }
+      ]
+    },
+    {
+      name: 'Movimientos',
+      columns: [
+        { header: 'Hora', key: 'created_at', width: 15 },
+        { header: 'Tipo', key: 'type', width: 12 },
+        { header: 'Concepto', key: 'description', width: 35 },
+        { header: 'Monto', key: 'amount', width: 15 }
+      ] as ExcelColumn[],
+      data: movements
+    }
+  ];
+
+  await exportMultiSheetExcel(
+    `cierre_caja_${sessionData.id}_${new Date().toISOString().split('T')[0]}`,
+    sheets
+  );
+};
+
+export default {
+  exportToExcel,
+  exportMultiSheetExcel,
+  exportSalesToExcel,
+  exportInventoryToExcel,
+  exportCustomersToExcel,
+  exportCashCloseToExcel
+};

@@ -3,16 +3,14 @@
  * Define todos los endpoints de métricas y KPIs
  */
 
-import express from 'express';
-import { query, body } from 'express-validator';
-import * as analyticsController from './controller.js';
-import { authenticate } from '../../middleware/auth.js';
+import { Router } from 'express';
+import analyticsController from './controller.js';
 import { validateRequest } from '../../middleware/validation.js';
+import { query, body } from 'express-validator';
 
-const router = express.Router();
+const router = Router();
 
-// Middleware de autenticación para todas las rutas
-router.use(authenticate);
+// Autenticación se maneja en server.js
 
 /**
  * @route   GET /api/analytics/sales

@@ -5,6 +5,7 @@
 
 import Joi from 'joi';
 import { ValidationError } from './errorHandler.js';
+import { validationResult } from 'express-validator';
 
 // Common validation schemas
 export const commonSchemas = {
@@ -284,11 +285,19 @@ export const validateFileUpload = (options = {}) => {
   };
 };
 
-// Validation middleware for express-validator
+/**
+ * Validate request using express-validator
+ * For use with express-validator's check/query/body functions
+ */
 export const validateRequest = (req, res, next) => {
-  // This is a compatibility middleware for express-validator
-  // If using express-validator, errors will already be in req
-  // Just pass through for now
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      errors: errors.array()
+    });
+  }
   next();
 };
 

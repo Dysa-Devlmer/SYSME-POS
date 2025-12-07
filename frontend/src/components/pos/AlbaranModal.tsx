@@ -1,258 +1,455 @@
 /**
- * Albaran Modal Component
- * Create delivery notes / packing slips
+ * AlbaranModal Component
+ * Modal para crear y gestionar Albaranes (Notas de Entrega)
+ * Documento que acompaña la mercancía sin valor fiscal
  */
 
-import React, { useState } from 'react';
-import { X, Save, Printer } from 'lucide-react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { formatCurrency, formatDate } from '../../config/chile-config';
 
-interface AlbaranItem {
+interface CartItem {
+  id: number;
   product_id: number;
   product_name: string;
   quantity: number;
   unit_price: number;
-  discount: number;
-  subtotal: number;
+  total_price: number;
+  sku?: string;
+  notes?: string;
+}
+
+interface DeliveryAddress {
+  street: string;
+  number: string;
+  commune: string;
+  city: string;
+  region: string;
+  reference?: string;
+}
+
+interface AlbaranData {
+  customer_name: string;
+  customer_rut?: string;
+  customer_phone?: string;
+  delivery_address: DeliveryAddress;
+  delivery_date: string;
+  delivery_time?: string;
+  driver_name?: string;
+  vehicle_plate?: string;
+  notes?: string;
+  items: CartItem[];
+  requires_signature: boolean;
 }
 
 interface AlbaranModalProps {
   isOpen: boolean;
   onClose: () => void;
-  saleId?: number;
-  items?: AlbaranItem[];
+  onGenerate: (data: AlbaranData) => void;
+  items: CartItem[];
+  customerName?: string;
+  customerRut?: string;
 }
 
 export const AlbaranModal: React.FC<AlbaranModalProps> = ({
   isOpen,
   onClose,
-  saleId,
-  items = []
+  onGenerate,
+  items,
+  customerName = '',
+  customerRut = ''
 }) => {
-  const [formData, setFormData] = useState({
-    customer_name: '',
-    customer_address: '',
-    customer_tax_id: '',
-    delivery_address: '',
-    delivery_date: '',
+  const [formData, setFormData] = useState<AlbaranData>({
+    customer_name: customerName,
+    customer_rut: customerRut,
+    customer_phone: '',
+    delivery_address: {
+      street: '',
+      number: '',
+      commune: '',
+      city: '',
+      region: 'Metropolitana'
+    },
+    delivery_date: new Date().toISOString().split('T')[0],
+    delivery_time: '',
+    driver_name: '',
+    vehicle_plate: '',
     notes: '',
-    internal_notes: ''
+    items: items,
+    requires_signature: true
   });
-  const [loading, setLoading] = useState(false);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState<'customer' | 'delivery' | 'items'>('customer');
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        customer_name: customerName,
+        customer_rut: customerRut,
+        items: items
+      }));
+    }
+  }, [isOpen, customerName, customerRut, items]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async () => {
-    setLoading(true);
+  const handleGenerate = async () => {
+    setIsGenerating(true);
     try {
-      const response = await axios.post('/api/v1/albaranes', {
-        ...formData,
-        sale_id: saleId,
-        items: items,
-        status: 'pending'
-      });
-
-      alert('Albarán creado exitosamente');
+      await onGenerate(formData);
       onClose();
     } catch (error) {
-      console.error('Error creating albaran:', error);
-      alert('Error al crear el albarán');
+      console.error('Error generating albaran:', error);
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
-  const handlePrint = () => {
-    // Print functionality
-    window.print();
+  const updateAddress = (field: keyof DeliveryAddress, value: string) => {
+    setFormData({
+      ...formData,
+      delivery_address: {
+        ...formData.delivery_address,
+        [field]: value
+      }
+    });
   };
 
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.subtotal, 0);
-  };
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalValue = items.reduce((sum, item) => sum + item.total_price, 0);
+
+  const REGIONS_CHILE = [
+    'Arica y Parinacota', 'Tarapacá', 'Antofagasta', 'Atacama', 'Coquimbo',
+    'Valparaíso', 'Metropolitana', "O'Higgins", 'Maule', 'Ñuble', 'Biobío',
+    'La Araucanía', 'Los Ríos', 'Los Lagos', 'Aysén', 'Magallanes'
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-800">
-            📦 Crear Albarán / Guía de Despacho
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white p-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              📋 Generar Albarán
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="text-teal-100 mt-1">Nota de Entrega - Guía de Despacho</p>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-6">
-          {/* Customer Information */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Información del Cliente</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Tabs */}
+        <div className="flex border-b">
+          {[
+            { id: 'customer', label: '👤 Cliente', icon: '1' },
+            { id: 'delivery', label: '🚚 Entrega', icon: '2' },
+            { id: 'items', label: '📦 Productos', icon: '3' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex-1 py-3 px-4 font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-teal-50 text-teal-700 border-b-2 border-teal-500'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Tab: Cliente */}
+          {activeTab === 'customer' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre / Razón Social *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.customer_name}
+                    onChange={(e) => setFormData({...formData, customer_name: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="Nombre del cliente"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    RUT
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.customer_rut}
+                    onChange={(e) => setFormData({...formData, customer_rut: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre/Razón Social *
+                  Teléfono de Contacto
                 </label>
                 <input
-                  type="text"
-                  value={formData.customer_name}
-                  onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  RUT/DNI
-                </label>
-                <input
-                  type="text"
-                  value={formData.customer_tax_id}
-                  onChange={(e) => setFormData({ ...formData, customer_tax_id: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección de Facturación
-                </label>
-                <textarea
-                  value={formData.customer_address}
-                  onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                  rows={2}
+                  type="tel"
+                  value={formData.customer_phone}
+                  onChange={(e) => setFormData({...formData, customer_phone: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                  placeholder="+56 9 1234 5678"
                 />
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Delivery Information */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Información de Entrega</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección de Entrega
-                </label>
-                <textarea
-                  value={formData.delivery_address}
-                  onChange={(e) => setFormData({ ...formData, delivery_address: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                  rows={2}
-                  placeholder="Si es diferente a la dirección de facturación"
-                />
+          {/* Tab: Entrega */}
+          {activeTab === 'delivery' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Calle *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.delivery_address.street}
+                    onChange={(e) => updateAddress('street', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="Av. Providencia"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Número *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.delivery_address.number}
+                    onChange={(e) => updateAddress('number', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="1234"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Comuna *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.delivery_address.commune}
+                    onChange={(e) => updateAddress('commune', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="Providencia"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ciudad
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.delivery_address.city}
+                    onChange={(e) => updateAddress('city', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="Santiago"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Región
+                  </label>
+                  <select
+                    value={formData.delivery_address.region}
+                    onChange={(e) => updateAddress('region', e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                  >
+                    {REGIONS_CHILE.map(region => (
+                      <option key={region} value={region}>{region}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de Entrega Estimada
+                  Referencia / Depto / Oficina
                 </label>
                 <input
-                  type="date"
-                  value={formData.delivery_date}
-                  onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  type="text"
+                  value={formData.delivery_address.reference}
+                  onChange={(e) => updateAddress('reference', e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                  placeholder="Depto 501, Torre A"
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Items */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Productos</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Producto</th>
-                    <th className="px-4 py-2 text-center text-sm font-medium text-gray-700">Cantidad</th>
-                    <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">Precio Unit.</th>
-                    <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">Descuento</th>
-                    <th className="px-4 py-2 text-right text-sm font-medium text-gray-700">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {items.map((item, index) => (
-                    <tr key={index}>
-                      <td className="px-4 py-3 text-sm">{item.product_name}</td>
-                      <td className="px-4 py-3 text-sm text-center">{item.quantity}</td>
-                      <td className="px-4 py-3 text-sm text-right">${item.unit_price.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-sm text-right">{item.discount}%</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">${item.subtotal.toLocaleString()}</td>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de Entrega *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.delivery_date}
+                    onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Hora Estimada
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.delivery_time}
+                    onChange={(e) => setFormData({...formData, delivery_time: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre del Conductor
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.driver_name}
+                    onChange={(e) => setFormData({...formData, driver_name: e.target.value})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                    placeholder="Juan Pérez"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Patente Vehículo
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.vehicle_plate}
+                    onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value.toUpperCase()})}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none uppercase"
+                    placeholder="ABCD-12"
+                    maxLength={7}
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 p-3 bg-gray-100 rounded-lg cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.requires_signature}
+                  onChange={(e) => setFormData({...formData, requires_signature: e.target.checked})}
+                  className="w-5 h-5 rounded"
+                />
+                <span className="font-medium">Requiere firma de recepción</span>
+              </label>
+            </div>
+          )}
+
+          {/* Tab: Items */}
+          {activeTab === 'items' && (
+            <div className="space-y-4">
+              <div className="bg-gray-100 rounded-lg p-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-300">
+                      <th className="text-left py-2">Producto</th>
+                      <th className="text-center py-2">Cant.</th>
+                      <th className="text-right py-2">Precio</th>
+                      <th className="text-right py-2">Subtotal</th>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot className="bg-gray-50">
-                  <tr>
-                    <td colSpan={4} className="px-4 py-3 text-right font-bold">TOTAL:</td>
-                    <td className="px-4 py-3 text-right font-bold text-lg">
-                      ${calculateTotal().toLocaleString()}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={index} className="border-b border-gray-200">
+                        <td className="py-2">
+                          <div className="font-medium">{item.product_name}</div>
+                          {item.sku && (
+                            <div className="text-xs text-gray-500">SKU: {item.sku}</div>
+                          )}
+                        </td>
+                        <td className="text-center py-2">{item.quantity}</td>
+                        <td className="text-right py-2">{formatCurrency(item.unit_price)}</td>
+                        <td className="text-right py-2 font-medium">{formatCurrency(item.total_price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-bold">
+                      <td className="py-2">Total</td>
+                      <td className="text-center py-2">{totalItems} items</td>
+                      <td></td>
+                      <td className="text-right py-2">{formatCurrency(totalValue)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
 
-          {/* Notes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notas para el Cliente
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-                rows={3}
-                placeholder="Notas visibles en el albarán"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observaciones
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none"
+                  rows={3}
+                  placeholder="Instrucciones especiales de entrega..."
+                />
+              </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notas Internas
-              </label>
-              <textarea
-                value={formData.internal_notes}
-                onChange={(e) => setFormData({ ...formData, internal_notes: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-                rows={3}
-                placeholder="Notas solo para uso interno"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 flex items-center gap-2"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !formData.customer_name}
-            className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {loading ? 'Guardando...' : 'Guardar Albarán'}
-          </button>
+        {/* Footer con resumen */}
+        <div className="border-t bg-gray-50 p-4">
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">{totalItems}</span> productos |{' '}
+              <span className="font-medium">{formatCurrency(totalValue)}</span> valor total
+            </div>
+            <div className="text-sm text-gray-500">
+              Fecha emisión: {formatDate(new Date(), true)}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !formData.customer_name || !formData.delivery_address.street}
+              className={`flex-1 py-3 px-4 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                isGenerating || !formData.customer_name || !formData.delivery_address.street
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-teal-500 hover:bg-teal-600 text-white'
+              }`}
+            >
+              {isGenerating ? (
+                <>Generando...</>
+              ) : (
+                <>📋 Generar Albarán</>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -47,82 +47,61 @@ const ReportsPage: React.FC = () => {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      // Simular datos de reportes
+      const params = {
+        period: selectedPeriod,
+        start_date: dateRange.start,
+        end_date: dateRange.end
+      };
+
       if (selectedReport === 'sales') {
-        const salesReport: SalesReport = {
-          period: selectedPeriod,
-          total_sales: 2458.75,
-          total_orders: 48,
-          average_order: 51.22,
-          payment_methods: {
-            cash: 1205.50,
-            card: 856.25,
-            transfer: 397.00
+        try {
+          const response = await apiClient.get('/reports/sales', { params });
+          if (response.data?.data) {
+            setSalesData(response.data.data);
+          } else {
+            // Fallback to default data if API returns empty
+            setSalesData({
+              period: selectedPeriod,
+              total_sales: 0,
+              total_orders: 0,
+              average_order: 0,
+              payment_methods: { cash: 0, card: 0, transfer: 0 }
+            });
           }
-        };
-        setSalesData(salesReport);
+        } catch (apiError) {
+          console.warn('Using fallback sales data:', apiError);
+          setSalesData({
+            period: selectedPeriod,
+            total_sales: 0,
+            total_orders: 0,
+            average_order: 0,
+            payment_methods: { cash: 0, card: 0, transfer: 0 }
+          });
+        }
       } else if (selectedReport === 'products') {
-        const productReport: ProductReport[] = [
-          {
-            id: 1,
-            name: 'Hamburguesa Clásica',
-            category: 'Platos Principales',
-            quantity_sold: 25,
-            total_revenue: 387.50,
-            profit_margin: 65.5
-          },
-          {
-            id: 2,
-            name: 'Pizza Margarita',
-            category: 'Pizzas',
-            quantity_sold: 18,
-            total_revenue: 324.00,
-            profit_margin: 72.3
-          },
-          {
-            id: 3,
-            name: 'Ensalada César',
-            category: 'Ensaladas',
-            quantity_sold: 15,
-            total_revenue: 191.25,
-            profit_margin: 58.8
-          },
-          {
-            id: 4,
-            name: 'Coca Cola',
-            category: 'Bebidas',
-            quantity_sold: 32,
-            total_revenue: 112.00,
-            profit_margin: 80.2
-          },
-          {
-            id: 5,
-            name: 'Pasta Alfredo',
-            category: 'Pastas',
-            quantity_sold: 12,
-            total_revenue: 195.00,
-            profit_margin: 68.7
+        try {
+          const response = await apiClient.get('/reports/product-performance', { params });
+          if (response.data?.data?.products) {
+            setProductData(response.data.data.products);
+          } else {
+            setProductData([]);
           }
-        ];
-        setProductData(productReport);
+        } catch (apiError) {
+          console.warn('Using fallback products data:', apiError);
+          setProductData([]);
+        }
       } else if (selectedReport === 'time') {
-        const timeReport: TimeReport[] = [
-          { hour: '08:00', orders: 2, revenue: 45.50 },
-          { hour: '09:00', orders: 4, revenue: 89.75 },
-          { hour: '10:00', orders: 3, revenue: 67.25 },
-          { hour: '11:00', orders: 6, revenue: 128.50 },
-          { hour: '12:00', orders: 12, revenue: 287.25 },
-          { hour: '13:00', orders: 15, revenue: 356.75 },
-          { hour: '14:00', orders: 8, revenue: 198.50 },
-          { hour: '15:00', orders: 5, revenue: 125.75 },
-          { hour: '16:00', orders: 3, revenue: 78.25 },
-          { hour: '17:00', orders: 4, revenue: 95.50 },
-          { hour: '18:00', orders: 7, revenue: 167.25 },
-          { hour: '19:00', orders: 10, revenue: 245.50 },
-          { hour: '20:00', orders: 14, revenue: 325.75 },
-          { hour: '21:00', orders: 9, revenue: 201.25 }
-        ];
-        setTimeData(timeReport);
+        try {
+          const response = await apiClient.get('/reports/hourly-sales', { params });
+          if (response.data?.data?.hourly) {
+            setTimeData(response.data.data.hourly);
+          } else {
+            setTimeData([]);
+          }
+        } catch (apiError) {
+          console.warn('Using fallback time data:', apiError);
+          setTimeData([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching reports:', error);

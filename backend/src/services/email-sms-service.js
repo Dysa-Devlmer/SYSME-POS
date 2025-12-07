@@ -625,9 +625,10 @@ class EmailSMSService extends EventEmitter {
     }
     this.scheduledJobs.clear();
 
-    if (this.emailTransporter) {
+    if (this.emailTransporter && typeof this.emailTransporter.close === 'function') {
       this.emailTransporter.close();
     }
+    this.emailTransporter = null;
 
     console.log('✅ Servicio de notificaciones Email/SMS limpiado');
   }

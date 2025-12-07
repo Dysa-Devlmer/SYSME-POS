@@ -88,13 +88,18 @@ export const chileConfig: ChileConfig = {
     // Métodos de pago chilenos
     paymentMethods: {
       cash: 'Efectivo',
+      redcompra: 'Red Compra',
+      visa: 'Visa',
+      mastercard: 'Mastercard',
       debit: 'Tarjeta de Débito',
       credit: 'Tarjeta de Crédito',
+      cheque: 'Cheque',
       transfer: 'Transferencia',
       webpay: 'Webpay',
       transbank: 'Transbank',
       mercadopago: 'MercadoPago',
-      bank_app: 'App Banco'
+      bank_app: 'App Banco',
+      mixed: 'Mixto'
     },
 
     // Categorías de productos típicas chilenas

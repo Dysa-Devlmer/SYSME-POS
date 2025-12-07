@@ -1,5 +1,6 @@
 /**
  * Invoice Routes - Sistema de Facturación
+ * Incluye integración con SII Chile
  */
 
 import express from 'express';
@@ -12,8 +13,12 @@ import {
   cancelInvoice,
   getInvoiceStats
 } from './controller.js';
+import siiRoutes from './sii-routes.js';
 
 const router = express.Router();
+
+// SII Chile - Facturación Electrónica
+router.use('/sii', siiRoutes);
 
 // Invoice Series routes
 router.get('/series', getInvoiceSeries);
