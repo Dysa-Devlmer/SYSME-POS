@@ -72,7 +72,7 @@ export const updateTipSettings = async (req, res) => {
     }
 
     // Update settings
-    const updated = await dbService.update('tip_settings', { id: settingsId }, updates);
+    const updated = await dbService.update('tip_settings', settingsId, updates);
 
     logger.info(`Tip settings updated by user ${req.user?.id}`);
 
@@ -216,7 +216,7 @@ export const updateTipPreset = async (req, res) => {
       });
     }
 
-    const updated = await dbService.update('tip_presets', { id }, updates);
+    const updated = await dbService.update('tip_presets', id, updates);
 
     logger.info(`Tip preset updated: ${id}`);
 
@@ -249,7 +249,7 @@ export const deleteTipPreset = async (req, res) => {
       });
     }
 
-    await dbService.update('tip_presets', { id }, { is_active: 0 });
+    await dbService.update('tip_presets', id, { is_active: 0 });
 
     logger.info(`Tip preset deleted: ${id}`);
 
