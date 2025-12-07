@@ -54,6 +54,7 @@ import loyaltyRoutes from './modules/loyalty/routes.js';
 import kdsRoutes from './modules/kds/routes.js';
 import branchInventoryRoutes from './modules/branch-inventory/routes.js';
 import deliveryRoutes from './modules/delivery/routes.js';
+import qrOrderingRoutes from './modules/qr-ordering/routes.js';
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // import aiRoutes from './modules/ai/routes.js';
 
@@ -181,6 +182,7 @@ apiRouter.use('/loyalty', loyaltyRoutes); // Loyalty has mixed auth (some public
 apiRouter.use('/kds', kdsRoutes); // Kitchen Display System
 apiRouter.use('/branch-inventory', branchInventoryRoutes); // Multi-Branch Inventory Sync
 apiRouter.use('/delivery', deliveryRoutes); // Delivery Management System
+apiRouter.use('/qr-ordering', qrOrderingRoutes); // QR Ordering System (mixed auth)
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // apiRouter.use('/ai', authenticate, aiRoutes);
 
