@@ -15,10 +15,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const menuItems = [
     { path: '/dashboard', icon: '🏠', label: 'Dashboard', color: 'blue', roles: ['all'] },
     { path: '/analytics', icon: '📊', label: 'Analíticas', color: 'blue', roles: ['manager', 'admin'] },
+    { path: '/executive-dashboard', icon: '📊', label: 'Executive Dashboard', color: 'purple', roles: ['admin'] },
+    { path: '/analytics/business-intelligence', icon: '🧠', label: 'Business Intelligence', color: 'indigo', roles: ['admin'] },
     { path: '/pos', icon: '💳', label: 'POS Ventas', color: 'green', roles: ['all'] },
     { path: '/pos/parked', icon: '⏸️', label: 'Ventas Aparcadas', color: 'yellow', roles: ['all'] },
     { path: '/mesas', icon: '🍽️', label: 'Mesas', color: 'yellow', roles: ['all'] },
     { path: '/reservations', icon: '📅', label: 'Reservas', color: 'yellow', roles: ['all'] },
+    { path: '/reservations/advanced', icon: '📅', label: 'Reservas Avanzadas', color: 'orange', roles: ['manager', 'admin'] },
     { path: '/cocina', icon: '👨‍🍳', label: 'Cocina', color: 'red', roles: ['all'] },
     { path: '/products', icon: '📦', label: 'Productos', color: 'purple', roles: ['manager', 'admin'] },
     { path: '/combos', icon: '🎁', label: 'Combos & Packs', color: 'purple', roles: ['manager', 'admin'] },
