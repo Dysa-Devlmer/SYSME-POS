@@ -46,6 +46,7 @@ import combosRoutes from './modules/combos/routes.js';
 import pricingTiersRoutes from './modules/pricing-tiers/routes.js';
 import tipsRoutes from './modules/tips/routes.js';
 import reservationsRoutes from './modules/reservations/routes.js';
+import advancedReservationsRoutes from './modules/reservations/advanced-routes.js';
 import suppliersRoutes from './modules/suppliers/routes.js';
 import customersRoutes from './modules/customers/routes.js';
 import analyticsRoutes from './modules/analytics/routes.js';
@@ -175,6 +176,7 @@ apiRouter.use('/combos', authenticate, combosRoutes);
 apiRouter.use('/pricing-tiers', authenticate, pricingTiersRoutes);
 apiRouter.use('/tips', authenticate, tipsRoutes);
 apiRouter.use('/reservations', authenticate, reservationsRoutes);
+apiRouter.use('/reservations/advanced', advancedReservationsRoutes); // Advanced Reservations (mixed auth - widget public)
 apiRouter.use('/suppliers', authenticate, suppliersRoutes);
 apiRouter.use('/customers', authenticate, customersRoutes);
 apiRouter.use('/analytics', authenticate, analyticsRoutes);
