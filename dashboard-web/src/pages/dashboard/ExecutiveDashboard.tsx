@@ -108,7 +108,7 @@ const ExecutiveDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando dashboard ejecutivo...</p>
         </div>
       </div>
@@ -123,7 +123,7 @@ const ExecutiveDashboard: React.FC = () => {
           <p className="text-gray-700">{error}</p>
           <button
             onClick={fetchDashboard}
-            className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Reintentar
           </button>
