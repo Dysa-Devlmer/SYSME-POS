@@ -3,7 +3,7 @@
  * Servicio frontend para el sistema avanzado de reservas
  */
 
-import api from './api';
+import { apiClient as api } from '@/api/client';
 
 // ============================================
 // INTERFACES

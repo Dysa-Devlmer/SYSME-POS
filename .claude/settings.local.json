@@ -101,7 +101,9 @@
       "Bash(npm start)",
       "Bash(timeout 10 bash:*)",
       "Bash(timeout 8 bash:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add Executive Dashboard frontend page with real-time KPIs\n\n- Created ExecutiveDashboard.tsx with comprehensive metrics display\n- Added route /executive-dashboard (admin only)\n- Integrated with executiveDashboardService for real-time data\n- Implemented Chart.js visualizations:\n  * Hourly sales bar chart\n  * Weekly trend line chart\n  * Category sales pie chart\n  * Payment methods doughnut chart\n- Features:\n  * Auto-refresh every 30 seconds\n  * Period selector (today/yesterday/week/month/quarter)\n  * CSV export functionality\n  * Real-time WebSocket metrics\n  * KPI cards for sales, tables, delivery, inventory, loyalty\n  * Alerts and low stock warnings\n  * Top products leaderboard\n- Installed react-chartjs-2 and chart.js dependencies\n- Fixed executiveDashboardService import path\n\n🤖 Generated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

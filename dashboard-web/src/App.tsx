@@ -40,6 +40,7 @@ const SuppliersPage = React.lazy(() => import('@/pages/SuppliersPage'));
 
 // TIER 3 Executive Pages
 const ExecutiveDashboard = React.lazy(() => import('@/pages/dashboard/ExecutiveDashboard'));
+const AdvancedReservationsPage = React.lazy(() => import('@/pages/reservations/AdvancedReservationsPage'));
 
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
@@ -479,6 +480,18 @@ function App() {
                 protected={true}
                 requiredRole="admin"
                 loadingMessage="Cargando dashboard ejecutivo..."
+              />
+            }
+          />
+
+          <Route
+            path="/reservations/advanced"
+            element={
+              <RouteWrapper
+                component={AdvancedReservationsPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando sistema avanzado de reservas..."
               />
             }
           />
