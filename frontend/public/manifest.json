@@ -1,0 +1,202 @@
+{
+  "name": "SYSME - Sistema de Restaurante",
+  "short_name": "SYSME POS",
+  "description": "Sistema POS completo para restaurantes - Gestión de mesas, cocina, inventario y ventas",
+  "version": "2.0.1",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "lang": "es-ES",
+  "dir": "ltr",
+
+  "icons": [
+    {
+      "src": "/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Dashboard principal del sistema SYSME"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Vista móvil del POS"
+    }
+  ],
+
+  "categories": [
+    "business",
+    "productivity",
+    "finance",
+    "food"
+  ],
+
+  "shortcuts": [
+    {
+      "name": "POS Ventas",
+      "short_name": "POS",
+      "description": "Acceso directo al sistema de ventas",
+      "url": "/pos",
+      "icons": [
+        {
+          "src": "/shortcut-pos.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Gestión de Mesas",
+      "short_name": "Mesas",
+      "description": "Administrar mesas del restaurante",
+      "url": "/mesas",
+      "icons": [
+        {
+          "src": "/shortcut-mesas.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Panel de Cocina",
+      "short_name": "Cocina",
+      "description": "Monitor de órdenes para cocina",
+      "url": "/cocina",
+      "icons": [
+        {
+          "src": "/shortcut-cocina.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Reportes",
+      "short_name": "Reportes",
+      "description": "Análisis y reportes de ventas",
+      "url": "/reports",
+      "icons": [
+        {
+          "src": "/shortcut-reports.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+
+  "related_applications": [],
+  "prefer_related_applications": false,
+
+  "launch_handler": {
+    "client_mode": "navigate-new"
+  },
+
+  "edge_side_panel": {
+    "preferred_width": 320
+  },
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+sysme",
+      "url": "/?action=%s"
+    }
+  ],
+
+  "file_handlers": [
+    {
+      "action": "/import",
+      "accept": {
+        "application/json": [".json"],
+        "text/csv": [".csv"],
+        "application/vnd.ms-excel": [".xls", ".xlsx"]
+      }
+    }
+  ],
+
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "invoice",
+          "accept": ["image/*", "application/pdf"]
+        }
+      ]
+    }
+  },
+
+  "features": [
+    "offline",
+    "push-notifications",
+    "background-sync",
+    "cross-platform",
+    "responsive"
+  ],
+
+  "iarc_rating_id": "",
+
+  "permissions": [
+    "notifications",
+    "background-sync",
+    "persistent-storage"
+  ]
+}

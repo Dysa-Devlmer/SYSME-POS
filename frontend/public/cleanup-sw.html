@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpiar Service Worker - SYSME</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        p {
+            color: #666;
+            margin: 0 0 20px 0;
+            line-height: 1.6;
+        }
+        #status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        .log {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 20px 0;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        .back-btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .back-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpieza de Service Worker</h1>
+        <p>Esta página eliminará el Service Worker y limpiará toda la caché del navegador para SYSME.</p>
+
+        <div id="status" class="info">
+            ⏳ Iniciando proceso de limpieza...
+        </div>
+
+        <div class="log" id="log"></div>
+
+        <a href="/" class="back-btn">← Volver a la aplicación</a>
+    </div>
+
+    <script>
+        const logContainer = document.getElementById('log');
+        const statusContainer = document.getElementById('status');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(message);
+        }
+
+        async function cleanup() {
+            try {
+                log('🧹 Iniciando limpieza completa...');
+
+                // 1. Desregistrar todos los Service Workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    log(`📦 Encontrados ${registrations.length} Service Workers`);
+
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        log(`✅ Service Worker desregistrado: ${registration.scope}`);
+                    }
+                } else {
+                    log('⚠️ Service Workers no soportados en este navegador');
+                }
+
+                // 2. Limpiar todas las cachés
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    log(`📦 Encontradas ${cacheNames.length} cachés`);
+
+                    for (let name of cacheNames) {
+                        await caches.delete(name);
+                        log(`✅ Caché eliminada: ${name}`);
+                    }
+                } else {
+                    log('⚠️ Cache API no soportada en este navegador');
+                }
+
+                // 3. Limpiar localStorage de PWA
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.includes('pwa') || key.includes('sw'))) {
+                        keysToRemove.push(key);
+                    }
+                }
+
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                    log(`✅ LocalStorage limpiado: ${key}`);
+                });
+
+                log('');
+                log('🎉 ¡Limpieza completada exitosamente!');
+                log('💡 Ahora puedes cerrar esta pestaña y recargar la aplicación');
+
+                statusContainer.className = 'success';
+                statusContainer.innerHTML = `
+                    ✅ Limpieza completada exitosamente<br>
+                    <small>Service Workers desregistrados y caché eliminada</small>
+                `;
+
+            } catch (error) {
+                log(`❌ Error durante la limpieza: ${error.message}`);
+                statusContainer.className = 'info';
+                statusContainer.style.background = '#fee2e2';
+                statusContainer.style.color = '#991b1b';
+                statusContainer.style.borderLeftColor = '#ef4444';
+                statusContainer.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        // Ejecutar limpieza automáticamente
+        cleanup();
+    </script>
+</body>
+</html>
