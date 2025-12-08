@@ -57,6 +57,7 @@ import branchInventoryRoutes from './modules/branch-inventory/routes.js';
 import deliveryRoutes from './modules/delivery/routes.js';
 import qrOrderingRoutes from './modules/qr-ordering/routes.js';
 import biRoutes, { initializeBIModule, biWebSocket } from './modules/business-intelligence/index.js';
+import executiveDashboardRoutes from './modules/executive-dashboard/routes.js';
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // import aiRoutes from './modules/ai/routes.js';
 
@@ -187,6 +188,7 @@ apiRouter.use('/branch-inventory', branchInventoryRoutes); // Multi-Branch Inven
 apiRouter.use('/delivery', deliveryRoutes); // Delivery Management System
 apiRouter.use('/qr-ordering', qrOrderingRoutes); // QR Ordering System (mixed auth)
 apiRouter.use('/business-intelligence', authenticate, biRoutes); // Business Intelligence Module
+apiRouter.use('/executive-dashboard', authenticate, executiveDashboardRoutes); // Executive Dashboard
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // apiRouter.use('/ai', authenticate, aiRoutes);
 
