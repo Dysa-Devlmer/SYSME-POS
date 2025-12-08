@@ -55,6 +55,7 @@ import kdsRoutes from './modules/kds/routes.js';
 import branchInventoryRoutes from './modules/branch-inventory/routes.js';
 import deliveryRoutes from './modules/delivery/routes.js';
 import qrOrderingRoutes from './modules/qr-ordering/routes.js';
+import biRoutes, { initializeBIModule, biWebSocket } from './modules/business-intelligence/index.js';
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // import aiRoutes from './modules/ai/routes.js';
 
@@ -183,6 +184,7 @@ apiRouter.use('/kds', kdsRoutes); // Kitchen Display System
 apiRouter.use('/branch-inventory', branchInventoryRoutes); // Multi-Branch Inventory Sync
 apiRouter.use('/delivery', deliveryRoutes); // Delivery Management System
 apiRouter.use('/qr-ordering', qrOrderingRoutes); // QR Ordering System (mixed auth)
+apiRouter.use('/business-intelligence', authenticate, biRoutes); // Business Intelligence Module
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // apiRouter.use('/ai', authenticate, aiRoutes);
 
@@ -191,6 +193,9 @@ app.use(`/api/${process.env.API_VERSION || 'v1'}`, apiRouter);
 
 // WebSocket setup
 initializeSocket(server);
+
+// Initialize Business Intelligence WebSocket
+biWebSocket.initializeWebSocket(io);
 
 // TEMPORALMENTE DESHABILITADO - realtime-notifications usa CommonJS
 // Initialize AI notification service with WebSocket
@@ -245,6 +250,10 @@ async function startServer() {
     // Initialize Redis connection
     await connectRedis();
     logger.info('Redis connected successfully');
+
+    // Initialize Business Intelligence Module
+    initializeBIModule();
+    logger.info('🧠 Business Intelligence module initialized');
 
     // TEMPORALMENTE DESHABILITADO - ai-proactive-alerts usa CommonJS
     // Initialize AI Services
