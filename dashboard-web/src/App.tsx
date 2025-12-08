@@ -43,6 +43,12 @@ const ExecutiveDashboard = React.lazy(() => import('@/pages/dashboard/ExecutiveD
 const AdvancedReservationsPage = React.lazy(() => import('@/pages/reservations/AdvancedReservationsPage'));
 const BusinessIntelligencePage = React.lazy(() => import('@/pages/analytics/BusinessIntelligencePage'));
 
+// TIER 4 New Module Pages
+const DeliveryPage = React.lazy(() => import('@/pages/delivery/DeliveryPage'));
+const KitchenDisplayPage = React.lazy(() => import('@/pages/kds/KitchenDisplayPage'));
+const QROrderingPage = React.lazy(() => import('@/pages/qr/QROrderingPage'));
+// const LoyaltyPage = React.lazy(() => import('@/pages/LoyaltyPage')); // Temporarily disabled - needs Tailwind conversion
+
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -508,6 +514,57 @@ function App() {
               />
             }
           />
+
+          {/* TIER 4 New Module Routes */}
+          <Route
+            path="/delivery"
+            element={
+              <RouteWrapper
+                component={DeliveryPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando gestión de delivery..."
+              />
+            }
+          />
+
+          <Route
+            path="/kds"
+            element={
+              <RouteWrapper
+                component={KitchenDisplayPage}
+                layout="none"
+                protected={true}
+                loadingMessage="Cargando Kitchen Display System..."
+              />
+            }
+          />
+
+          <Route
+            path="/qr-ordering"
+            element={
+              <RouteWrapper
+                component={QROrderingPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando sistema de pedidos QR..."
+              />
+            }
+          />
+
+          {/* Loyalty page temporarily disabled - needs Tailwind conversion
+          <Route
+            path="/loyalty"
+            element={
+              <RouteWrapper
+                component={LoyaltyPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando programa de fidelización..."
+              />
+            }
+          />
+          */}
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/admin/login" replace />} />

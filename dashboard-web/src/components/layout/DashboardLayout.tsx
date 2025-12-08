@@ -23,6 +23,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { path: '/reservations', icon: '📅', label: 'Reservas', color: 'yellow', roles: ['all'] },
     { path: '/reservations/advanced', icon: '📅', label: 'Reservas Avanzadas', color: 'orange', roles: ['manager', 'admin'] },
     { path: '/cocina', icon: '👨‍🍳', label: 'Cocina', color: 'red', roles: ['all'] },
+    { path: '/kds', icon: '📺', label: 'Kitchen Display (KDS)', color: 'red', roles: ['all'] },
+    { path: '/delivery', icon: '🚚', label: 'Delivery', color: 'blue', roles: ['manager', 'admin'] },
+    { path: '/qr-ordering', icon: '📱', label: 'Pedidos QR', color: 'purple', roles: ['manager', 'admin'] },
+    // { path: '/loyalty', icon: '🎁', label: 'Fidelización', color: 'pink', roles: ['manager', 'admin'] }, // Temporarily disabled
     { path: '/products', icon: '📦', label: 'Productos', color: 'purple', roles: ['manager', 'admin'] },
     { path: '/combos', icon: '🎁', label: 'Combos & Packs', color: 'purple', roles: ['manager', 'admin'] },
     { path: '/modifiers', icon: '🔧', label: 'Modificadores', color: 'purple', roles: ['manager', 'admin'] },

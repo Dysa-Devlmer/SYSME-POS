@@ -3,7 +3,7 @@
  * Servicio frontend para el sistema de pedidos por código QR
  */
 
-import api from './api';
+import { apiClient as api } from '@/api/client';
 
 // ============================================
 // INTERFACES
