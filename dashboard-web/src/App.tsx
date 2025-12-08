@@ -47,7 +47,7 @@ const BusinessIntelligencePage = React.lazy(() => import('@/pages/analytics/Busi
 const DeliveryPage = React.lazy(() => import('@/pages/delivery/DeliveryPage'));
 const KitchenDisplayPage = React.lazy(() => import('@/pages/kds/KitchenDisplayPage'));
 const QROrderingPage = React.lazy(() => import('@/pages/qr/QROrderingPage'));
-// const LoyaltyPage = React.lazy(() => import('@/pages/LoyaltyPage')); // Temporarily disabled - needs Tailwind conversion
+const LoyaltyPage = React.lazy(() => import('@/pages/loyalty/LoyaltyPage'));
 
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
@@ -552,7 +552,6 @@ function App() {
             }
           />
 
-          {/* Loyalty page temporarily disabled - needs Tailwind conversion
           <Route
             path="/loyalty"
             element={
@@ -564,7 +563,6 @@ function App() {
               />
             }
           />
-          */}
 
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/admin/login" replace />} />
