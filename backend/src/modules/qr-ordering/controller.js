@@ -13,7 +13,7 @@
  * - WebSocket en tiempo real
  */
 
-import dbService from '../../services/dbService.js';
+import { dbService } from '../../config/database.js';
 import { emitToRoom, emitToAll } from '../../websockets/socketHandler.js';
 import crypto from 'crypto';
 
@@ -267,8 +267,8 @@ export const initQROrderingTables = () => {
   console.log('✅ QR Ordering tables initialized');
 };
 
-// Inicializar tablas al cargar el módulo
-initQROrderingTables();
+// NOTE: initQROrderingTables() debe ser llamado desde server.js
+// después de que la base de datos esté inicializada
 
 // ============================================
 // GENERACIÓN DE CÓDIGOS QR

@@ -430,6 +430,13 @@ export const broadcastEvent = (event, data) => {
 };
 
 /**
+ * Emit event to all clients (alias for broadcastEvent)
+ */
+export const emitToAll = (event, data) => {
+  broadcastEvent(event, data);
+};
+
+/**
  * Get Socket.IO instance
  */
 export const getIO = () => {
@@ -443,6 +450,7 @@ export { ORDER_STATUS };
 export default {
   initializeSocket,
   emitToRoom,
+  emitToAll,
   emitToStation,
   broadcastEvent,
   getIO,

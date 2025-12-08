@@ -245,8 +245,8 @@ export const initAdvancedReservationTables = () => {
   console.log('✅ Advanced reservation tables initialized');
 };
 
-// Inicializar al cargar
-initAdvancedReservationTables();
+// NOTE: initAdvancedReservationTables() debe ser llamado desde server.js
+// después de que la base de datos esté inicializada
 
 // ============================================
 // UTILIDADES

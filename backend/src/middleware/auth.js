@@ -141,7 +141,7 @@ export const authenticate = async (req, res, next) => {
 };
 
 // Optional authentication (for public endpoints that can use auth if available)
-export const optionalAuthenticate = async (req, res, next) => {
+export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -372,8 +372,12 @@ export async function blacklistToken(token, expiresIn = 86400) {
   }
 }
 
+// Alias for backward compatibility
+export const optionalAuthenticate = optionalAuth;
+
 export default {
   authenticate,
+  optionalAuth,
   optionalAuthenticate,
   authorize,
   requirePermission,
