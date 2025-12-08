@@ -41,6 +41,7 @@ const SuppliersPage = React.lazy(() => import('@/pages/SuppliersPage'));
 // TIER 3 Executive Pages
 const ExecutiveDashboard = React.lazy(() => import('@/pages/dashboard/ExecutiveDashboard'));
 const AdvancedReservationsPage = React.lazy(() => import('@/pages/reservations/AdvancedReservationsPage'));
+const BusinessIntelligencePage = React.lazy(() => import('@/pages/analytics/BusinessIntelligencePage'));
 
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
@@ -492,6 +493,18 @@ function App() {
                 protected={true}
                 requiredRole="manager"
                 loadingMessage="Cargando sistema avanzado de reservas..."
+              />
+            }
+          />
+
+          <Route
+            path="/analytics/business-intelligence"
+            element={
+              <RouteWrapper
+                component={BusinessIntelligencePage}
+                protected={true}
+                requiredRole="admin"
+                loadingMessage="Cargando Business Intelligence..."
               />
             }
           />
