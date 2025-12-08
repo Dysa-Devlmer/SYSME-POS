@@ -48,6 +48,7 @@ const DeliveryPage = React.lazy(() => import('@/pages/delivery/DeliveryPage'));
 const KitchenDisplayPage = React.lazy(() => import('@/pages/kds/KitchenDisplayPage'));
 const QROrderingPage = React.lazy(() => import('@/pages/qr/QROrderingPage'));
 const LoyaltyPage = React.lazy(() => import('@/pages/loyalty/LoyaltyPage'));
+const HelpPage = React.lazy(() => import('@/pages/help/HelpPage'));
 
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
@@ -560,6 +561,17 @@ function App() {
                 protected={true}
                 requiredRole="manager"
                 loadingMessage="Cargando programa de fidelización..."
+              />
+            }
+          />
+
+          <Route
+            path="/help"
+            element={
+              <RouteWrapper
+                component={HelpPage}
+                protected={true}
+                loadingMessage="Cargando centro de ayuda..."
               />
             }
           />

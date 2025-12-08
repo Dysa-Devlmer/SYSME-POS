@@ -39,6 +39,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { path: '/pricing-tiers', icon: '💲', label: 'Tarifas', color: 'purple', roles: ['admin', 'manager'] },
     { path: '/permissions', icon: '🔐', label: 'Permisos', color: 'red', roles: ['admin'] },
     { path: '/settings', icon: '⚙️', label: 'Configuración', color: 'gray', roles: ['admin'] },
+    { path: '/help', icon: '❓', label: 'Ayuda', color: 'gray', roles: ['all'] },
   ];
 
   const handleLogout = () => {
