@@ -288,8 +288,8 @@ const ExecutiveDashboard: React.FC = () => {
       {/* KPIs Principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Ventas */}
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-red-600">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">VENTAS</h3>
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-red-600" title="Ventas Totales: Muestra los ingresos totales del período seleccionado, comparado con el período anterior. Incluye transacciones y ticket promedio.">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">VENTAS 💡</h3>
           <p className="text-3xl font-bold text-gray-900">{dashboard.kpis.sales.total_revenue_formatted}</p>
           <div className="mt-2 flex items-center gap-2">
             <span className={`text-sm font-semibold ${dashboard.kpis.sales.revenue_trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
@@ -304,8 +304,8 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
 
         {/* Mesas */}
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-blue-600">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">MESAS</h3>
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-blue-600" title="Ocupación de Mesas: Porcentaje de mesas ocupadas en tiempo real. Incluye número de mesas ocupadas y reservas programadas para hoy.">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">MESAS 💡</h3>
           <p className="text-3xl font-bold text-gray-900">{dashboard.kpis.tables.occupancy_rate.toFixed(1)}%</p>
           <div className="mt-2">
             <span className="text-sm text-gray-600">Ocupación actual</span>
@@ -317,8 +317,8 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
 
         {/* Delivery */}
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-green-600">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">DELIVERY</h3>
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-green-600" title="Deliveries: Número de pedidos en tránsito actualmente. Muestra deliveries completados y tiempo promedio de entrega.">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">DELIVERY 💡</h3>
           <p className="text-3xl font-bold text-gray-900">{dashboard.kpis.delivery.in_progress}</p>
           <div className="mt-2">
             <span className="text-sm text-gray-600">En tránsito</span>
@@ -330,8 +330,8 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
 
         {/* Inventario */}
-        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-orange-600">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">INVENTARIO</h3>
+        <div className="bg-white p-6 rounded-lg shadow-lg border-l-4 border-orange-600" title="Valor del Inventario: Valor monetario total de productos en stock. Muestra cantidad de productos y alertas de stock bajo que requieren reorden.">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">INVENTARIO 💡</h3>
           <p className="text-3xl font-bold text-gray-900">{dashboard.kpis.inventory.inventory_value_formatted}</p>
           <div className="mt-2">
             <span className="text-sm text-gray-600">Valor total</span>

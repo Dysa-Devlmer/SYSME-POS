@@ -249,22 +249,22 @@ const BusinessIntelligencePage: React.FC = () => {
             <h3 className="text-lg font-bold text-gray-900 mb-4">📈 Pronóstico de Ventas</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-gray-600">Estimación Mañana</p>
+              <div className="p-4 bg-green-50 rounded-lg" title="Estimación Mañana: Predicción de ingresos para el próximo día basada en análisis de datos históricos de los últimos 30 días usando Machine Learning.">
+                <p className="text-sm text-gray-600">Estimación Mañana 💡</p>
                 <p className="text-2xl font-bold text-green-600">
                   {biUtils.formatCLP(forecast.forecast.next_day_estimate)}
                 </p>
               </div>
 
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">Confianza</p>
+              <div className="p-4 bg-blue-50 rounded-lg" title="Confianza: Nivel de certeza del modelo ML (0-1). Alta confianza (>0.8) indica patrones estables. Baja confianza (<0.6) sugiere variabilidad alta.">
+                <p className="text-sm text-gray-600">Confianza 💡</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {biUtils.formatConfidence(forecast.forecast.confidence)}
                 </p>
               </div>
 
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <p className="text-sm text-gray-600">Método</p>
+              <div className="p-4 bg-purple-50 rounded-lg" title="Método ML: Algoritmo de Machine Learning utilizado para el pronóstico. Promedio Móvil Simple (SMA) analiza tendencias recientes para predecir ventas futuras.">
+                <p className="text-sm text-gray-600">Método 💡</p>
                 <p className="text-sm font-semibold text-purple-600 mt-2">
                   {forecast.forecast.method.replace(/_/g, ' ').toUpperCase()}
                 </p>
@@ -304,23 +304,23 @@ const BusinessIntelligencePage: React.FC = () => {
 
             {/* Summary Cards */}
             <div className="space-y-3">
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
-                <h4 className="font-bold text-green-800">⭐ Estrellas ({menuEngineering.summary.stars})</h4>
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg" title="Estrellas: Productos con alta popularidad y alto margen de ganancia. Son los productos estrella del menú que generan más ingresos. Mantener stock y destacar en el menú.">
+                <h4 className="font-bold text-green-800">⭐ Estrellas ({menuEngineering.summary.stars}) 💡</h4>
                 <p className="text-sm text-green-700">Alta popularidad, alto margen - Mantener y promover</p>
               </div>
 
-              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
-                <h4 className="font-bold text-yellow-800">🧩 Enigmas ({menuEngineering.summary.puzzles})</h4>
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg" title="Enigmas: Productos con bajo volumen de ventas pero alto margen. Representan oportunidad de crecimiento con marketing adecuado o mejora en presentación.">
+                <h4 className="font-bold text-yellow-800">🧩 Enigmas ({menuEngineering.summary.puzzles}) 💡</h4>
                 <p className="text-sm text-yellow-700">Baja popularidad, alto margen - Promocionar más</p>
               </div>
 
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-                <h4 className="font-bold text-blue-800">🐴 Caballos ({menuEngineering.summary.plow_horses})</h4>
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg" title="Caballos de Arado: Productos muy vendidos pero con bajo margen. Generan tráfico pero poca ganancia. Considerar aumentar precio o reducir costos de producción.">
+                <h4 className="font-bold text-blue-800">🐴 Caballos ({menuEngineering.summary.plow_horses}) 💡</h4>
                 <p className="text-sm text-blue-700">Alta popularidad, bajo margen - Revisar precios</p>
               </div>
 
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                <h4 className="font-bold text-red-800">🐕 Perros ({menuEngineering.summary.dogs})</h4>
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg" title="Perros: Productos con baja popularidad y bajo margen. No contribuyen significativamente al negocio. Evaluar si eliminar del menú o rediseñar completamente.">
+                <h4 className="font-bold text-red-800">🐕 Perros ({menuEngineering.summary.dogs}) 💡</h4>
                 <p className="text-sm text-red-700">Baja popularidad, bajo margen - Considerar eliminar</p>
               </div>
             </div>

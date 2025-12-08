@@ -200,6 +200,12 @@ const KitchenDisplayPage: React.FC = () => {
                     'bg-gray-50 border-gray-300'
                   }`}
                   onClick={() => handleBumpItem(item.kds_item_id)}
+                  title={
+                    item.status === 'pending' ? 'Pendiente: Orden recién recibida, esperando preparación. Haz clic para marcar como "En preparación".' :
+                    item.status === 'preparing' ? 'En Preparación: Cocinero trabajando en este item. Haz clic cuando esté listo para servir.' :
+                    item.status === 'ready' ? 'Listo: Item completado y listo para servir. Haz clic para confirmar que fue entregado.' :
+                    'Haz clic para cambiar estado del item'
+                  }
                 >
                   <div className="flex items-center justify-between mb-1">
                     <p className="font-bold text-lg">{item.quantity}x {item.product_name}</p>
@@ -210,7 +216,7 @@ const KitchenDisplayPage: React.FC = () => {
                         color: getStatusColor(item.status)
                       }}
                     >
-                      {getStatusLabel(item.status)}
+                      {getStatusLabel(item.status)} 💡
                     </span>
                   </div>
                   {item.modifiers.length > 0 && (
