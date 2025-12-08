@@ -3,7 +3,7 @@
  * Servicio frontend para el dashboard ejecutivo
  */
 
-import api from './api';
+import { apiClient as api } from '@/api/client';
 
 // ============================================
 // INTERFACES

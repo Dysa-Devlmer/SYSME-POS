@@ -38,6 +38,9 @@ const AnalyticsDashboard = React.lazy(() => import('@/pages/dashboard/AnalyticsD
 const TipsSettingsPage = React.lazy(() => import('@/pages/TipsSettingsPage'));
 const SuppliersPage = React.lazy(() => import('@/pages/SuppliersPage'));
 
+// TIER 3 Executive Pages
+const ExecutiveDashboard = React.lazy(() => import('@/pages/dashboard/ExecutiveDashboard'));
+
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -463,6 +466,19 @@ function App() {
                 protected={true}
                 requiredRole="manager"
                 loadingMessage="Cargando gestión de proveedores..."
+              />
+            }
+          />
+
+          {/* TIER 3 Executive Routes */}
+          <Route
+            path="/executive-dashboard"
+            element={
+              <RouteWrapper
+                component={ExecutiveDashboard}
+                protected={true}
+                requiredRole="admin"
+                loadingMessage="Cargando dashboard ejecutivo..."
               />
             }
           />
