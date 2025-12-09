@@ -84,7 +84,7 @@ echo.
 
 REM Iniciar frontend
 echo [6/6] Iniciando Frontend Dashboard...
-cd ..\dashboard-web
+cd ..\frontend
 
 if not exist "node_modules\" (
     echo Instalando dependencias del frontend...

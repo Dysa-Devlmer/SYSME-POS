@@ -44,7 +44,7 @@ start "SYSME Backend Dev" cmd /k "npm run dev"
 timeout /t 3 /nobreak >nul
 echo.
 echo Iniciando Frontend (puerto 23847)...
-cd ..\dashboard-web
+cd ..\frontend
 start "SYSME Frontend Dev" cmd /k "npm run dev"
 echo.
 echo [OK] Sistema iniciado en modo DESARROLLO

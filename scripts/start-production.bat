@@ -51,7 +51,7 @@ echo.
 
 REM Verificar dependencias del frontend
 echo [INFO] Verificando dependencias del frontend...
-cd dashboard-web
+cd frontend
 if not exist "node_modules" (
     echo [WARN] Instalando dependencias del frontend...
     call npm install
@@ -127,7 +127,7 @@ echo Puerto: 23847
 echo Modo: Preview (Produccion)
 echo.
 
-cd ..\dashboard-web
+cd ..\frontend
 start "SYSME Frontend Production" cmd /k "npm run preview"
 
 echo.
