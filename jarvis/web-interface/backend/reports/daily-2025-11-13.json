@@ -1,0 +1,16 @@
+{
+  "date": "2025-11-13",
+  "period": "daily",
+  "summary": {
+    "totalSessions": 0,
+    "successfulSessions": 0,
+    "failedSessions": 0,
+    "averageScore": 0,
+    "totalSubtasks": 0,
+    "successfulSubtasks": 0,
+    "totalDuration": 0
+  },
+  "topTasks": [],
+  "subtasksByType": {},
+  "timestamp": 1763010000001
+}

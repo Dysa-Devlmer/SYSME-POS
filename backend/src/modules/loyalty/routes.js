@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { authenticate, optionalAuth } from '../../middleware/auth.js';
+import { authenticate, optionalAuthenticate } from '../../middleware/auth.js';
 import {
   // Program Settings
   getProgramSettings,

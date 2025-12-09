@@ -21,6 +21,10 @@ export const getSalesReport = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1); // Include end date
 
+    // Convert dates to Unix timestamps (milliseconds)
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     // Get sales summary
     const summary = await dbService.raw(
       `SELECT
@@ -33,17 +37,17 @@ export const getSalesReport = async (req, res) => {
         MAX(total) as max_sale
        FROM sales
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     // Get sales by date grouping
     let groupByClause;
     if (group_by === 'hour') {
-      groupByClause = "strftime('%Y-%m-%d %H:00:00', created_at)";
+      groupByClause = "strftime('%Y-%m-%d %H:00:00', datetime(created_at/1000, 'unixepoch'))";
     } else if (group_by === 'month') {
-      groupByClause = "strftime('%Y-%m', created_at)";
+      groupByClause = "strftime('%Y-%m', datetime(created_at/1000, 'unixepoch'))";
     } else {
-      groupByClause = "DATE(created_at)";
+      groupByClause = "DATE(datetime(created_at/1000, 'unixepoch'))";
     }
 
     const salesByPeriod = await dbService.raw(
@@ -56,7 +60,7 @@ export const getSalesReport = async (req, res) => {
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'
        GROUP BY period
        ORDER BY period ASC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
@@ -167,6 +171,9 @@ export const getProductPerformance = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const productPerformance = await dbService.raw(
       `SELECT
         p.id,
@@ -183,7 +190,7 @@ export const getProductPerformance = async (req, res) => {
        GROUP BY p.id, p.name, p.sku
        ORDER BY total_revenue DESC
        LIMIT ?`,
-      [startDate.toISOString(), endDate.toISOString(), parseInt(limit)]
+      [startTimestamp, endTimestamp, parseInt(limit)]
     );
 
     res.json({
@@ -215,6 +222,9 @@ export const getCategoryPerformance = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const categoryPerformance = await dbService.raw(
       `SELECT
         c.id,
@@ -230,7 +240,7 @@ export const getCategoryPerformance = async (req, res) => {
        WHERE s.created_at >= ? AND s.created_at < ? AND s.status = 'completed'
        GROUP BY c.id, c.name
        ORDER BY total_revenue DESC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
@@ -262,6 +272,9 @@ export const getPaymentMethodsReport = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const paymentMethods = await dbService.raw(
       `SELECT
         payment_method,
@@ -274,7 +287,7 @@ export const getPaymentMethodsReport = async (req, res) => {
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'
        GROUP BY payment_method
        ORDER BY total_amount DESC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({
@@ -306,9 +319,12 @@ export const getHourlySalesReport = async (req, res) => {
     const endDate = new Date(date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const hourlySales = await dbService.raw(
       `SELECT
-        strftime('%H', created_at) as hour,
+        strftime('%H', datetime(created_at/1000, 'unixepoch')) as hour,
         COUNT(*) as sales_count,
         SUM(total) as revenue,
         AVG(total) as average_sale
@@ -316,7 +332,7 @@ export const getHourlySalesReport = async (req, res) => {
        WHERE created_at >= ? AND created_at < ? AND status = 'completed'
        GROUP BY hour
        ORDER BY hour ASC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     // Fill in missing hours with zeros
@@ -354,23 +370,23 @@ export const getCashSessionsReport = async (req, res) => {
     let query = `
       SELECT
         cs.id,
+        cs.session_number,
         cs.user_id,
         u.username,
         cs.opened_at,
         cs.closed_at,
-        cs.opening_amount,
-        cs.closing_amount,
-        cs.expected_amount,
-        cs.actual_amount,
+        cs.opening_balance,
+        cs.closing_balance,
+        cs.expected_balance,
         cs.difference,
+        cs.total_sales,
+        cs.total_cash,
+        cs.total_card,
+        cs.sales_count,
         cs.notes,
-        cs.status,
-        COUNT(DISTINCT s.id) as total_sales,
-        COALESCE(SUM(s.total), 0) as sales_total
+        cs.status
       FROM cash_sessions cs
       LEFT JOIN users u ON cs.user_id = u.id
-      LEFT JOIN sales s ON s.created_at BETWEEN cs.opened_at AND COALESCE(cs.closed_at, datetime('now'))
-        AND s.status = 'completed'
     `;
 
     const params = [];
@@ -384,7 +400,7 @@ export const getCashSessionsReport = async (req, res) => {
       params.push(startDate.toISOString(), endDate.toISOString());
     }
 
-    query += ` GROUP BY cs.id ORDER BY cs.opened_at DESC`;
+    query += ` ORDER BY cs.opened_at DESC`;
 
     const sessions = await dbService.raw(query, params);
 
@@ -393,9 +409,9 @@ export const getCashSessionsReport = async (req, res) => {
       total_sessions: sessions.length,
       open_sessions: sessions.filter(s => s.status === 'open').length,
       closed_sessions: sessions.filter(s => s.status === 'closed').length,
-      total_opening_amount: sessions.reduce((sum, s) => sum + (s.opening_amount || 0), 0),
-      total_closing_amount: sessions.reduce((sum, s) => sum + (s.closing_amount || 0), 0),
-      total_sales: sessions.reduce((sum, s) => sum + (s.sales_total || 0), 0),
+      total_opening: sessions.reduce((sum, s) => sum + (s.opening_balance || 0), 0),
+      total_closing: sessions.reduce((sum, s) => sum + (s.closing_balance || 0), 0),
+      total_sales: sessions.reduce((sum, s) => sum + (s.total_sales || 0), 0),
       total_difference: sessions.reduce((sum, s) => sum + (s.difference || 0), 0)
     };
 
@@ -431,23 +447,25 @@ export const getWaiterPerformance = async (req, res) => {
     const endDate = new Date(end_date);
     endDate.setDate(endDate.getDate() + 1);
 
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+
     const waiterPerformance = await dbService.raw(
       `SELECT
         u.id,
         u.username,
-        u.full_name,
+        u.first_name || ' ' || u.last_name as full_name,
         COUNT(DISTINCT s.id) as total_sales,
         SUM(s.total) as total_revenue,
         AVG(s.total) as average_sale,
-        COALESCE(SUM(st.tip_amount), 0) as total_tips,
-        COALESCE(AVG(st.tip_amount), 0) as average_tip
+        COALESCE(SUM(s.tip_amount), 0) as total_tips,
+        COALESCE(AVG(s.tip_amount), 0) as average_tip
        FROM users u
        INNER JOIN sales s ON s.waiter_id = u.id
-       LEFT JOIN sale_tips st ON st.sale_id = s.id
        WHERE s.created_at >= ? AND s.created_at < ? AND s.status = 'completed'
-       GROUP BY u.id, u.username, u.full_name
+       GROUP BY u.id, u.username
        ORDER BY total_revenue DESC`,
-      [startDate.toISOString(), endDate.toISOString()]
+      [startTimestamp, endTimestamp]
     );
 
     res.json({

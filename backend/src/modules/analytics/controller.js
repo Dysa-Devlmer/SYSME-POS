@@ -1,6 +1,6 @@
 /**
- * Controlador de Analytics
- * Gestiona todos los endpoints de métricas y KPIs
+ * Analytics Controller - ES Modules Version
+ * Provides metrics, KPIs and analytics endpoints
  */
 
 import { getDatabase } from '../../config/database.js';

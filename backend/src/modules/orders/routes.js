@@ -53,7 +53,7 @@ router.post('/',
 
 // GET /orders/kitchen - Get orders for kitchen display
 router.get('/kitchen',
-  requirePermission('kitchen.read'),
+  requirePermission('kitchen.view_orders'),
   asyncHandler(ordersController.getKitchenOrders)
 );
 
@@ -71,7 +71,7 @@ router.get('/:id',
 
 // PATCH /orders/:id/kitchen-status - Update kitchen status
 router.patch('/:id/kitchen-status',
-  requirePermission('kitchen.update'),
+  requirePermission('kitchen.update_status'),
   validateParams(Joi.object({ id: paramsSchema.id })),
   validate(orderSchema.updateKitchenStatus),
   asyncHandler(ordersController.updateKitchenStatus)

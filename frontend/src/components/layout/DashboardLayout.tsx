@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { translate } from '@/config/chile-config';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -88,7 +89,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               {sidebarOpen && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{user.username || user.email || "Usuario"}</p>
-                  <p className="text-xs text-gray-500 truncate">{user.role}</p>
+                  <p className="text-xs text-gray-500 truncate">{translate('roles', user.role)}</p>
                   {user.assigned_tpv && <p className="text-xs text-blue-600 truncate">{user.assigned_tpv}</p>}
                 </div>
               )}
@@ -158,7 +159,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               {user && (
                 <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2">
                   {user.assigned_tpv && (<><span className="text-sm font-medium text-gray-700">{user.assigned_tpv}</span><span className="text-xs text-gray-500">|</span></>)}
-                  <span className="text-sm text-gray-600">{user.role}</span>
+                  <span className="text-sm text-gray-600">{translate('roles', user.role)}</span>
                 </div>
               )}
             </div>

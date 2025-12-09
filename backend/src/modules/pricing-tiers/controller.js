@@ -1,20 +1,13 @@
 /**
  * Pricing Tiers Controller - Multiple pricing system
+ * Uses centralized database service for consistent database access
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { dbService } from '../../config/database.js';
 import { logger } from '../../config/logger.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const dbPath = path.join(__dirname, '../../database/sysme.db');
-const db = new Database(dbPath);
-
 // Get all pricing tiers
-export const getAllTiers = (req, res) => {
+export const getAllTiers = async (req, res) => {
   try {
     const { include_inactive } = req.query;
 
@@ -24,7 +17,7 @@ export const getAllTiers = (req, res) => {
     }
     query += ' ORDER BY priority DESC, name ASC';
 
-    const tiers = db.prepare(query).all();
+    const tiers = await dbService.query(query);
 
     res.json({
       success: true,
@@ -40,13 +33,13 @@ export const getAllTiers = (req, res) => {
 };
 
 // Get active pricing tiers
-export const getActiveTiers = (req, res) => {
+export const getActiveTiers = async (req, res) => {
   try {
-    const tiers = db.prepare(`
+    const tiers = await dbService.query(`
       SELECT * FROM pricing_tiers
       WHERE is_active = 1
       ORDER BY priority DESC, name ASC
-    `).all();
+    `);
 
     res.json({
       success: true,
@@ -62,13 +55,15 @@ export const getActiveTiers = (req, res) => {
 };
 
 // Get default tier
-export const getDefaultTier = (req, res) => {
+export const getDefaultTier = async (req, res) => {
   try {
-    const tier = db.prepare(`
+    const tiers = await dbService.query(`
       SELECT * FROM pricing_tiers
       WHERE is_default = 1 AND is_active = 1
       LIMIT 1
-    `).get();
+    `);
+
+    const tier = tiers[0];
 
     if (!tier) {
       return res.status(404).json({
@@ -91,11 +86,11 @@ export const getDefaultTier = (req, res) => {
 };
 
 // Get tier by ID
-export const getTierById = (req, res) => {
+export const getTierById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const tier = db.prepare('SELECT * FROM pricing_tiers WHERE id = ?').get(id);
+    const tier = await dbService.findById('pricing_tiers', id);
 
     if (!tier) {
       return res.status(404).json({
@@ -118,7 +113,7 @@ export const getTierById = (req, res) => {
 };
 
 // Create pricing tier
-export const createTier = (req, res) => {
+export const createTier = async (req, res) => {
   try {
     const {
       code,
@@ -142,27 +137,20 @@ export const createTier = (req, res) => {
 
     // If setting as default, remove default from others
     if (is_default) {
-      db.prepare('UPDATE pricing_tiers SET is_default = 0').run();
+      await dbService.query('UPDATE pricing_tiers SET is_default = 0');
     }
 
-    const result = db.prepare(`
-      INSERT INTO pricing_tiers (
-        code, name, description, is_default, is_active,
-        valid_days, valid_start_time, valid_end_time, priority
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    const tier = await dbService.create('pricing_tiers', {
       code,
       name,
       description,
-      is_default ? 1 : 0,
-      is_active ? 1 : 0,
-      valid_days ? JSON.stringify(valid_days) : null,
+      is_default: is_default ? 1 : 0,
+      is_active: is_active ? 1 : 0,
+      valid_days: valid_days ? JSON.stringify(valid_days) : null,
       valid_start_time,
       valid_end_time,
       priority
-    );
-
-    const tier = db.prepare('SELECT * FROM pricing_tiers WHERE id = ?').get(result.lastInsertRowid);
+    });
 
     res.status(201).json({
       success: true,
@@ -171,7 +159,7 @@ export const createTier = (req, res) => {
     });
   } catch (error) {
     logger.error('Error creating tier:', error);
-    if (error.message.includes('UNIQUE')) {
+    if (error.message && error.message.includes('UNIQUE')) {
       return res.status(400).json({
         success: false,
         error: 'Ya existe una tarifa con ese código'
@@ -185,7 +173,7 @@ export const createTier = (req, res) => {
 };
 
 // Update pricing tier
-export const updateTier = (req, res) => {
+export const updateTier = async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -201,7 +189,7 @@ export const updateTier = (req, res) => {
     } = req.body;
 
     // Check if tier exists
-    const existingTier = db.prepare('SELECT * FROM pricing_tiers WHERE id = ?').get(id);
+    const existingTier = await dbService.findById('pricing_tiers', id);
     if (!existingTier) {
       return res.status(404).json({
         success: false,
@@ -211,35 +199,22 @@ export const updateTier = (req, res) => {
 
     // If setting as default, remove default from others
     if (is_default) {
-      db.prepare('UPDATE pricing_tiers SET is_default = 0 WHERE id != ?').run(id);
+      await dbService.query('UPDATE pricing_tiers SET is_default = 0 WHERE id != ?', [id]);
     }
 
-    db.prepare(`
-      UPDATE pricing_tiers
-      SET code = COALESCE(?, code),
-          name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          is_default = COALESCE(?, is_default),
-          is_active = COALESCE(?, is_active),
-          valid_days = COALESCE(?, valid_days),
-          valid_start_time = COALESCE(?, valid_start_time),
-          valid_end_time = COALESCE(?, valid_end_time),
-          priority = COALESCE(?, priority)
-      WHERE id = ?
-    `).run(
-      code,
-      name,
-      description,
-      is_default !== undefined ? (is_default ? 1 : 0) : null,
-      is_active !== undefined ? (is_active ? 1 : 0) : null,
-      valid_days ? JSON.stringify(valid_days) : null,
-      valid_start_time,
-      valid_end_time,
-      priority,
-      id
-    );
+    // Build update data - only include non-undefined values
+    const updateData = {};
+    if (code !== undefined) updateData.code = code;
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (is_default !== undefined) updateData.is_default = is_default ? 1 : 0;
+    if (is_active !== undefined) updateData.is_active = is_active ? 1 : 0;
+    if (valid_days !== undefined) updateData.valid_days = valid_days ? JSON.stringify(valid_days) : null;
+    if (valid_start_time !== undefined) updateData.valid_start_time = valid_start_time;
+    if (valid_end_time !== undefined) updateData.valid_end_time = valid_end_time;
+    if (priority !== undefined) updateData.priority = priority;
 
-    const updatedTier = db.prepare('SELECT * FROM pricing_tiers WHERE id = ?').get(id);
+    const updatedTier = await dbService.update('pricing_tiers', id, updateData);
 
     res.json({
       success: true,
@@ -256,12 +231,12 @@ export const updateTier = (req, res) => {
 };
 
 // Delete pricing tier
-export const deleteTier = (req, res) => {
+export const deleteTier = async (req, res) => {
   try {
     const { id } = req.params;
 
     // Check if it's the default tier
-    const tier = db.prepare('SELECT * FROM pricing_tiers WHERE id = ?').get(id);
+    const tier = await dbService.findById('pricing_tiers', id);
     if (!tier) {
       return res.status(404).json({
         success: false,
@@ -277,22 +252,24 @@ export const deleteTier = (req, res) => {
     }
 
     // Check if tier is being used
-    const usageCount = db.prepare(`
+    const usageResult = await dbService.query(`
       SELECT COUNT(*) as count FROM (
         SELECT id FROM tables WHERE pricing_tier_id = ?
         UNION ALL
         SELECT id FROM sales WHERE pricing_tier_id = ?
       )
-    `).get(id, id);
+    `, [id, id]);
 
-    if (usageCount.count > 0) {
+    const usageCount = usageResult[0];
+
+    if (usageCount && usageCount.count > 0) {
       return res.status(400).json({
         success: false,
         error: 'No se puede eliminar: tarifa en uso'
       });
     }
 
-    db.prepare('DELETE FROM pricing_tiers WHERE id = ?').run(id);
+    await dbService.delete('pricing_tiers', id);
 
     res.json({
       success: true,
@@ -308,20 +285,20 @@ export const deleteTier = (req, res) => {
 };
 
 // Get product prices for a tier
-export const getProductPrices = (req, res) => {
+export const getProductPrices = async (req, res) => {
   try {
     const { tier_id } = req.params;
 
-    const prices = db.prepare(`
+    const prices = await dbService.query(`
       SELECT
         ppt.*,
         p.name as product_name,
-        p.base_price as default_price
+        p.price as default_price
       FROM product_pricing_tiers ppt
       JOIN products p ON ppt.product_id = p.id
       WHERE ppt.pricing_tier_id = ?
       ORDER BY p.name ASC
-    `).all(tier_id);
+    `, [tier_id]);
 
     res.json({
       success: true,
@@ -337,7 +314,7 @@ export const getProductPrices = (req, res) => {
 };
 
 // Set product price for tier
-export const setProductPrice = (req, res) => {
+export const setProductPrice = async (req, res) => {
   try {
     const { tier_id, product_id } = req.params;
     const { price } = req.body;
@@ -349,18 +326,32 @@ export const setProductPrice = (req, res) => {
       });
     }
 
-    // Upsert
-    db.prepare(`
-      INSERT INTO product_pricing_tiers (product_id, pricing_tier_id, price)
-      VALUES (?, ?, ?)
-      ON CONFLICT(product_id, pricing_tier_id)
-      DO UPDATE SET price = ?, updated_at = CURRENT_TIMESTAMP
-    `).run(product_id, tier_id, price, price);
+    // Check if exists
+    const existing = await dbService.query(
+      'SELECT * FROM product_pricing_tiers WHERE product_id = ? AND pricing_tier_id = ?',
+      [product_id, tier_id]
+    );
 
-    const result = db.prepare(`
-      SELECT * FROM product_pricing_tiers
-      WHERE product_id = ? AND pricing_tier_id = ?
-    `).get(product_id, tier_id);
+    let result;
+    if (existing.length > 0) {
+      // Update
+      await dbService.query(
+        'UPDATE product_pricing_tiers SET price = ?, updated_at = CURRENT_TIMESTAMP WHERE product_id = ? AND pricing_tier_id = ?',
+        [price, product_id, tier_id]
+      );
+      const results = await dbService.query(
+        'SELECT * FROM product_pricing_tiers WHERE product_id = ? AND pricing_tier_id = ?',
+        [product_id, tier_id]
+      );
+      result = results[0];
+    } else {
+      // Insert
+      result = await dbService.create('product_pricing_tiers', {
+        product_id,
+        pricing_tier_id: tier_id,
+        price
+      });
+    }
 
     res.json({
       success: true,
@@ -377,7 +368,7 @@ export const setProductPrice = (req, res) => {
 };
 
 // Get applicable tier for a table/time
-export const getApplicableTier = (req, res) => {
+export const getApplicableTier = async (req, res) => {
   try {
     const { table_id } = req.query;
     const now = new Date();
@@ -388,11 +379,13 @@ export const getApplicableTier = (req, res) => {
 
     // If table specified, check table's tier
     if (table_id) {
-      tier = db.prepare(`
+      const tableTiers = await dbService.query(`
         SELECT pt.* FROM pricing_tiers pt
         JOIN tables t ON t.pricing_tier_id = pt.id
         WHERE t.id = ? AND pt.is_active = 1
-      `).get(table_id);
+      `, [table_id]);
+
+      tier = tableTiers[0];
 
       if (tier) {
         return res.json({ success: true, data: tier });
@@ -400,13 +393,13 @@ export const getApplicableTier = (req, res) => {
     }
 
     // Check time-based tiers
-    const timeTiers = db.prepare(`
+    const timeTiers = await dbService.query(`
       SELECT * FROM pricing_tiers
       WHERE is_active = 1
         AND valid_start_time IS NOT NULL
         AND valid_end_time IS NOT NULL
       ORDER BY priority DESC
-    `).all();
+    `);
 
     for (const t of timeTiers) {
       // Check days
@@ -424,11 +417,12 @@ export const getApplicableTier = (req, res) => {
 
     // Default tier
     if (!tier) {
-      tier = db.prepare(`
+      const defaultTiers = await dbService.query(`
         SELECT * FROM pricing_tiers
         WHERE is_default = 1 AND is_active = 1
         LIMIT 1
-      `).get();
+      `);
+      tier = defaultTiers[0];
     }
 
     res.json({

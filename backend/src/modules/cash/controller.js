@@ -11,7 +11,7 @@ import { logger } from '../../config/logger.js';
  */
 export const getCurrentSession = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const session = await dbService.findOne('cash_sessions', {
       user_id: userId,
@@ -54,7 +54,7 @@ export const getCurrentSession = async (req, res) => {
  */
 export const openSession = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { opening_balance = 0, notes } = req.body;
 
     // Check if user already has an open session
@@ -122,7 +122,7 @@ export const openSession = async (req, res) => {
  */
 export const closeSession = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { closing_balance, notes } = req.body;
 
     // Get active session
@@ -188,7 +188,7 @@ export const closeSession = async (req, res) => {
  */
 export const addMovement = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { type, amount, payment_method, reason, notes } = req.body;
 
     // Validate type
@@ -251,7 +251,7 @@ export const addMovement = async (req, res) => {
  */
 export const recordSale = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { sale_id, amount, payment_method } = req.body;
 
     // Get active session
@@ -314,7 +314,7 @@ export const recordSale = async (req, res) => {
 export const generateZReport = async (req, res) => {
   try {
     const { session_id } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Get session
     const session = await dbService.findById('cash_sessions', session_id);

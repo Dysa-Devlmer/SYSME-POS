@@ -100,7 +100,7 @@ export const getProgramSettings = async (req, res) => {
   try {
     const program = await dbService.findOne('loyalty_programs', { id: 1 });
     const tiers = await dbService.findMany('loyalty_tiers', { is_active: 1 }, {
-      orderBy: { field: 'display_order', direction: 'asc' }
+      orderBy: { field: 'sort_order', direction: 'asc' }
     });
 
     res.json({
@@ -593,10 +593,10 @@ export const redeemPoints = async (req, res) => {
     }
 
     // Check points
-    if (member.available_points < reward.points_cost) {
+    if (member.available_points < reward.points_required) {
       return res.status(400).json({
         success: false,
-        message: `Puntos insuficientes. Necesitas ${reward.points_cost}, tienes ${member.available_points}`
+        message: `Puntos insuficientes. Necesitas ${reward.points_required}, tienes ${member.available_points}`
       });
     }
 
@@ -610,7 +610,7 @@ export const redeemPoints = async (req, res) => {
     }
 
     const pointsBefore = member.available_points;
-    const pointsAfter = pointsBefore - reward.points_cost;
+    const pointsAfter = pointsBefore - reward.points_required;
     const redemptionCode = generateRedemptionCode();
 
     // Create redemption
@@ -618,7 +618,7 @@ export const redeemPoints = async (req, res) => {
       member_id,
       reward_id,
       sale_id,
-      points_spent: reward.points_cost,
+      points_spent: reward.points_required,
       reward_value: reward.monetary_value || reward.discount_value,
       status: sale_id ? 'completed' : 'pending',
       redemption_code: redemptionCode,
@@ -633,7 +633,7 @@ export const redeemPoints = async (req, res) => {
       member_id,
       sale_id,
       type: 'redeem',
-      points: -reward.points_cost,
+      points: -reward.points_required,
       points_before: pointsBefore,
       points_after: pointsAfter,
       description: `Canje: ${reward.name}`,
@@ -661,7 +661,7 @@ export const redeemPoints = async (req, res) => {
       data: {
         redemption,
         redemption_code: redemptionCode,
-        points_spent: reward.points_cost,
+        points_spent: reward.points_required,
         new_balance: pointsAfter,
         reward: reward.name
       },
@@ -743,7 +743,7 @@ export const getRewards = async (req, res) => {
       params.push(tier_id);
     }
 
-    query += ' ORDER BY r.is_featured DESC, r.points_cost ASC';
+    query += ' ORDER BY r.is_featured DESC, r.points_required ASC';
 
     const rewards = await dbService.raw(query, params);
 
@@ -774,10 +774,10 @@ export const createReward = async (req, res) => {
   try {
     const rewardData = req.body;
 
-    if (!rewardData.name || !rewardData.points_cost || !rewardData.reward_type) {
+    if (!rewardData.name || !rewardData.points_required || !rewardData.reward_type) {
       return res.status(400).json({
         success: false,
-        message: 'name, points_cost y reward_type son requeridos'
+        message: 'name, points_required y reward_type son requeridos'
       });
     }
 
@@ -839,7 +839,7 @@ export const getLoyaltyDashboard = async (req, res) => {
       FROM loyalty_tiers t
       LEFT JOIN loyalty_members m ON t.id = m.current_tier_id AND m.status = 'active'
       GROUP BY t.id
-      ORDER BY t.display_order
+      ORDER BY t.sort_order
     `);
 
     // Points summary
@@ -1053,7 +1053,7 @@ export const enrollMember = createMember;
 export const getAllTiers = async (req, res) => {
   try {
     const tiers = await dbService.findMany('loyalty_tiers', { is_active: 1 }, {
-      orderBy: { field: 'display_order', direction: 'asc' }
+      orderBy: { field: 'sort_order', direction: 'asc' }
     });
 
     res.json({ success: true, data: tiers });
@@ -1248,7 +1248,7 @@ export const getAvailableRewardsForMember = async (req, res) => {
         r.*,
         t.name as min_tier_name,
         CASE
-          WHEN r.points_cost <= ? THEN 1
+          WHEN r.points_required <= ? THEN 1
           ELSE 0
         END as can_afford,
         CASE
@@ -1260,7 +1260,7 @@ export const getAvailableRewardsForMember = async (req, res) => {
       WHERE r.is_active = 1
         AND (r.max_redemptions IS NULL OR r.current_redemptions < r.max_redemptions)
         AND (r.valid_until IS NULL OR r.valid_until >= date('now'))
-      ORDER BY can_afford DESC, tier_eligible DESC, r.points_cost ASC
+      ORDER BY can_afford DESC, tier_eligible DESC, r.points_required ASC
     `, [member.available_points, member.current_tier_id]);
 
     res.json({

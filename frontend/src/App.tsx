@@ -192,14 +192,27 @@ const usePerformanceMonitoring = () => {
   useEffect(() => {
     // Monitorear performance de carga inicial
     if (typeof window !== 'undefined' && 'performance' in window) {
-      const loadTime = window.performance.timing.loadEventEnd - window.performance.timing.navigationStart;
-      console.log(`🚀 SYSME Load Time: ${loadTime}ms`);
+      // Use performance.now() and navigation API for accurate timing
+      const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+
+      if (navigationEntry) {
+        const loadTime = navigationEntry.loadEventEnd - navigationEntry.fetchStart;
+
+        if (loadTime > 0) {
+          console.log(`🚀 SYSME Load Time: ${loadTime.toFixed(2)}ms`);
+
+          // Warning si carga lenta
+          if (loadTime > 3000) {
+            console.warn('⚠️ Slow load detected. Consider optimization.');
+          }
+        }
+      }
 
       // Reportar métricas si están disponibles
       if ('getEntriesByType' in window.performance) {
         const paintEntries = window.performance.getEntriesByType('paint');
         paintEntries.forEach(entry => {
-          console.log(`🎨 ${entry.name}: ${entry.startTime}ms`);
+          console.log(`🎨 ${entry.name}: ${entry.startTime.toFixed(2)}ms`);
         });
       }
     }

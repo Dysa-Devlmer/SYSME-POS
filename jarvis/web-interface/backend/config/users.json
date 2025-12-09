@@ -1,0 +1,13 @@
+[
+  {
+    "id": "admin",
+    "username": "admin",
+    "email": "admin@jarvis.local",
+    "password": "$2b$10$6FmJwBIKLX91i7s0fDzvSux.jBsHCNr6jfh7bQjSCTrdv6NVRGhF.",
+    "role": "admin",
+    "enabled": true,
+    "createdAt": 1762824064104,
+    "lastLogin": null,
+    "mustChangePassword": true
+  }
+]

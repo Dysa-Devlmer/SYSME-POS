@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Percent, Save, Plus, Trash2, Settings, Users, Calculator } from 'lucide-react';
 import toast from 'react-hot-toast';
-import tipsService, { TipSettings, TipPreset, TipDistributionRule } from '../services/tipsService';
+import tipsService, { TipSettings, TipPreset, TipDistributionRule } from '../api/tipsService';
 
 const TipsSettingsPage: React.FC = () => {
   // State

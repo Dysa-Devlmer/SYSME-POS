@@ -1,0 +1,51 @@
+/* web-interface/frontend/src/components/SessionHistory.css */
+
+.custom-scrollbar-small {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.5) rgba(31, 41, 55, 0.5);
+}
+
+.custom-scrollbar-small::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar-small::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar-small::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar-small::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
+}
+
+.bg-gray-650 {
+  background-color: rgb(60, 70, 85);
+}
+
+/* Hover animation for session cards */
+.bg-gray-700:hover {
+  transform: translateX(2px);
+  transition: transform 0.2s ease;
+}
+
+/* Expand/collapse animation */
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+.bg-gray-700 > div:last-child {
+  animation: expandDown 0.3s ease-out;
+}

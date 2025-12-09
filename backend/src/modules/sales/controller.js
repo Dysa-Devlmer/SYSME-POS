@@ -191,10 +191,16 @@ export const processSale = async (req, res) => {
       });
     }
 
+    // Generate sale number
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const count = await dbService.count('sales', {});
+    const saleNumber = `SALE-${today}-${String(count + 1).padStart(6, '0')}`;
+
     // Start transaction
     await dbService.transaction(async (trx) => {
       // Create sale record with cash_session_id
       const [saleId] = await trx('sales').insert({
+        sale_number: saleNumber,
         customer_id,
         table_number,
         subtotal,

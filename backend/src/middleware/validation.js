@@ -263,24 +263,24 @@ export const validateFileUpload = (options = {}) => {
     allowedTypes = ['image/jpeg', 'image/png', 'image/gif'],
     required = false
   } = options;
-  
+
   return (req, res, next) => {
     if (!req.file && required) {
       throw new ValidationError('File upload is required');
     }
-    
+
     if (!req.file) {
       return next();
     }
-    
+
     if (req.file.size > maxSize) {
       throw new ValidationError(`File size exceeds maximum allowed size of ${maxSize / (1024 * 1024)}MB`);
     }
-    
+
     if (!allowedTypes.includes(req.file.mimetype)) {
       throw new ValidationError(`File type not allowed. Allowed types: ${allowedTypes.join(', ')}`);
     }
-    
+
     next();
   };
 };

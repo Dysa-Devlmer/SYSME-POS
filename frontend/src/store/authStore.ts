@@ -3,6 +3,24 @@ import { persist } from 'zustand/middleware';
 import { api } from '@/api/client';
 import toast from 'react-hot-toast';
 
+// Flag to prevent multiple initializations (important for React StrictMode)
+let authInitialized = false;
+
+// Clean up any corrupted localStorage data on module load
+try {
+  const stored = localStorage.getItem('sysme-auth-storage');
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    if (!parsed.state || typeof parsed.state !== 'object') {
+      console.warn('Clearing corrupted auth storage');
+      localStorage.removeItem('sysme-auth-storage');
+    }
+  }
+} catch (e) {
+  console.warn('Clearing invalid auth storage');
+  localStorage.removeItem('sysme-auth-storage');
+}
+
 export interface User {
   id: number;
   username: string;
@@ -297,5 +315,28 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Initialize auth check on store creation
-useAuthStore.getState().checkAuth();
+// Initialize auth check on store creation (without showing toasts)
+// Use flag to prevent double initialization in React StrictMode
+if (!authInitialized) {
+  authInitialized = true;
+
+  (async () => {
+    const state = useAuthStore.getState();
+    if (state.token) {
+      try {
+        await state.checkAuth();
+      } catch (error) {
+        console.log('Session expired or invalid');
+        useAuthStore.setState({
+          user: null,
+          token: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      }
+    } else {
+      useAuthStore.setState({ isLoading: false });
+    }
+  })();
+}
