@@ -406,6 +406,18 @@ export const emitToRoom = (room, event, data) => {
 };
 
 /**
+ * Emit event to specific KDS station
+ */
+export const emitToStation = (stationCode, event, data) => {
+  if (!io) {
+    logger.warn('Socket.IO not initialized');
+    return;
+  }
+
+  io.to(`kds-station-${stationCode}`).emit(event, data);
+};
+
+/**
  * Broadcast event to all clients
  */
 export const broadcastEvent = (event, data) => {
@@ -415,6 +427,13 @@ export const broadcastEvent = (event, data) => {
   }
 
   io.emit(event, data);
+};
+
+/**
+ * Emit event to all clients (alias for broadcastEvent)
+ */
+export const emitToAll = (event, data) => {
+  broadcastEvent(event, data);
 };
 
 /**
@@ -431,6 +450,8 @@ export { ORDER_STATUS };
 export default {
   initializeSocket,
   emitToRoom,
+  emitToAll,
+  emitToStation,
   broadcastEvent,
   getIO,
   ORDER_STATUS

@@ -46,11 +46,18 @@ import combosRoutes from './modules/combos/routes.js';
 import pricingTiersRoutes from './modules/pricing-tiers/routes.js';
 import tipsRoutes from './modules/tips/routes.js';
 import reservationsRoutes from './modules/reservations/routes.js';
+import advancedReservationsRoutes from './modules/reservations/advanced-routes.js';
 import suppliersRoutes from './modules/suppliers/routes.js';
 import customersRoutes from './modules/customers/routes.js';
 import analyticsRoutes from './modules/analytics/routes.js';
 import promotionsRoutes from './modules/promotions/routes.js';
 import loyaltyRoutes from './modules/loyalty/routes.js';
+import kdsRoutes from './modules/kds/routes.js';
+import branchInventoryRoutes from './modules/branch-inventory/routes.js';
+import deliveryRoutes from './modules/delivery/routes.js';
+import qrOrderingRoutes from './modules/qr-ordering/routes.js';
+import biRoutes, { initializeBIModule, biWebSocket } from './modules/business-intelligence/index.js';
+import executiveDashboardRoutes from './modules/executive-dashboard/routes.js';
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // import aiRoutes from './modules/ai/routes.js';
 
@@ -170,11 +177,18 @@ apiRouter.use('/combos', authenticate, combosRoutes);
 apiRouter.use('/pricing-tiers', authenticate, pricingTiersRoutes);
 apiRouter.use('/tips', authenticate, tipsRoutes);
 apiRouter.use('/reservations', authenticate, reservationsRoutes);
+apiRouter.use('/reservations/advanced', advancedReservationsRoutes); // Advanced Reservations (mixed auth - widget public)
 apiRouter.use('/suppliers', authenticate, suppliersRoutes);
 apiRouter.use('/customers', authenticate, customersRoutes);
 apiRouter.use('/analytics', authenticate, analyticsRoutes);
 apiRouter.use('/promotions', authenticate, promotionsRoutes);
 apiRouter.use('/loyalty', loyaltyRoutes); // Loyalty has mixed auth (some public endpoints)
+apiRouter.use('/kds', kdsRoutes); // Kitchen Display System
+apiRouter.use('/branch-inventory', branchInventoryRoutes); // Multi-Branch Inventory Sync
+apiRouter.use('/delivery', deliveryRoutes); // Delivery Management System
+apiRouter.use('/qr-ordering', qrOrderingRoutes); // QR Ordering System (mixed auth)
+apiRouter.use('/business-intelligence', authenticate, biRoutes); // Business Intelligence Module
+apiRouter.use('/executive-dashboard', authenticate, executiveDashboardRoutes); // Executive Dashboard
 // TEMPORALMENTE DESHABILITADO - Necesita conversión a ES modules
 // apiRouter.use('/ai', authenticate, aiRoutes);
 
@@ -183,6 +197,9 @@ app.use(`/api/${process.env.API_VERSION || 'v1'}`, apiRouter);
 
 // WebSocket setup
 initializeSocket(server);
+
+// Initialize Business Intelligence WebSocket
+biWebSocket.initializeWebSocket(io);
 
 // TEMPORALMENTE DESHABILITADO - realtime-notifications usa CommonJS
 // Initialize AI notification service with WebSocket
@@ -237,6 +254,10 @@ async function startServer() {
     // Initialize Redis connection
     await connectRedis();
     logger.info('Redis connected successfully');
+
+    // Initialize Business Intelligence Module
+    initializeBIModule();
+    logger.info('🧠 Business Intelligence module initialized');
 
     // TEMPORALMENTE DESHABILITADO - ai-proactive-alerts usa CommonJS
     // Initialize AI Services

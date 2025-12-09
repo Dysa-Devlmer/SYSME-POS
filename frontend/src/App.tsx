@@ -38,6 +38,18 @@ const AnalyticsDashboard = React.lazy(() => import('@/pages/dashboard/AnalyticsD
 const TipsSettingsPage = React.lazy(() => import('@/pages/TipsSettingsPage'));
 const SuppliersPage = React.lazy(() => import('@/pages/SuppliersPage'));
 
+// TIER 3 Executive Pages
+const ExecutiveDashboard = React.lazy(() => import('@/pages/dashboard/ExecutiveDashboard'));
+const AdvancedReservationsPage = React.lazy(() => import('@/pages/reservations/AdvancedReservationsPage'));
+const BusinessIntelligencePage = React.lazy(() => import('@/pages/analytics/BusinessIntelligencePage'));
+
+// TIER 4 New Module Pages
+const DeliveryPage = React.lazy(() => import('@/pages/delivery/DeliveryPage'));
+const KitchenDisplayPage = React.lazy(() => import('@/pages/kds/KitchenDisplayPage'));
+const QROrderingPage = React.lazy(() => import('@/pages/qr/QROrderingPage'));
+const LoyaltyPage = React.lazy(() => import('@/pages/loyalty/LoyaltyPage'));
+const HelpPage = React.lazy(() => import('@/pages/help/HelpPage'));
+
 // Loading spinner component optimizado
 const LoadingSpinner: React.FC<{ message?: string }> = ({ message = 'Cargando...' }) => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -476,6 +488,103 @@ function App() {
                 protected={true}
                 requiredRole="manager"
                 loadingMessage="Cargando gestión de proveedores..."
+              />
+            }
+          />
+
+          {/* TIER 3 Executive Routes */}
+          <Route
+            path="/executive-dashboard"
+            element={
+              <RouteWrapper
+                component={ExecutiveDashboard}
+                protected={true}
+                requiredRole="admin"
+                loadingMessage="Cargando dashboard ejecutivo..."
+              />
+            }
+          />
+
+          <Route
+            path="/reservations/advanced"
+            element={
+              <RouteWrapper
+                component={AdvancedReservationsPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando sistema avanzado de reservas..."
+              />
+            }
+          />
+
+          <Route
+            path="/analytics/business-intelligence"
+            element={
+              <RouteWrapper
+                component={BusinessIntelligencePage}
+                protected={true}
+                requiredRole="admin"
+                loadingMessage="Cargando Business Intelligence..."
+              />
+            }
+          />
+
+          {/* TIER 4 New Module Routes */}
+          <Route
+            path="/delivery"
+            element={
+              <RouteWrapper
+                component={DeliveryPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando gestión de delivery..."
+              />
+            }
+          />
+
+          <Route
+            path="/kds"
+            element={
+              <RouteWrapper
+                component={KitchenDisplayPage}
+                layout="none"
+                protected={true}
+                loadingMessage="Cargando Kitchen Display System..."
+              />
+            }
+          />
+
+          <Route
+            path="/qr-ordering"
+            element={
+              <RouteWrapper
+                component={QROrderingPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando sistema de pedidos QR..."
+              />
+            }
+          />
+
+          <Route
+            path="/loyalty"
+            element={
+              <RouteWrapper
+                component={LoyaltyPage}
+                protected={true}
+                requiredRole="manager"
+                loadingMessage="Cargando programa de fidelización..."
+              />
+            }
+          />
+
+          <Route
+            path="/help"
+            element={
+              <RouteWrapper
+                component={HelpPage}
+                protected={true}
+                loadingMessage="Cargando centro de ayuda..."
               />
             }
           />
